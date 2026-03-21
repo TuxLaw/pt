@@ -1,0 +1,1987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Point Taken - Interactive Game</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=League+Gothic&family=Nunito:wght@400;600;700;800&display=swap');
+
+        :root {
+            /* --- QUICK ADJUSTMENT VARIABLES --- */
+            /* Font Sizes */
+            --font-size-base: 16px;
+            --font-size-header: 18px;
+            --font-size-footer: 18px;
+            --font-size-topic-footer: 16px;
+            --font-size-modal-title: 22px;
+            --font-size-modal-p: 16px;
+            --font-size-btn: 16px;
+            --font-size-score: 22px;
+
+            /* Icon Sizes */
+            --icon-size-add: 32px;
+            --icon-size-add-btn: 50px;
+            --icon-size-token: 28px;
+            --icon-size-display-token: 60px;
+            --icon-size-ctrl: 32px;
+            --mini-rule-icon-size: 32px;
+
+            /* Vertical position of popups (e.g., center, flex-start) */
+            --popup-vertical-position: flex-start;
+            --popup-padding-top: 50px; /* Use to add offset when flex-start is used */
+            /* ---------------------------------- */
+
+            --bg-color: #faf9f6;
+            --topic-color: #444444;
+            --yes-color: #5ad1a0;
+            --no-color: #ff9a40;
+            --tile-size: 240px;
+
+            --dot-color: #d5d5d5;
+            --panel-bg: white;
+            --panel-border: #eee;
+            --text-primary: #333;
+            --text-secondary: #666;
+            --btn-bg: white;
+            --btn-border: #ddd;
+            --btn-hover-bg: #f9f9f9;
+            --btn-hover-border: #888;
+            --btn-active-bg: #eee;
+            --btn-active-border: #444;
+            --modal-p-bg: #f5f5f5;
+            --modal-p-border: #ccc;
+            --input-border: #ccc;
+            --cancel-bg: #eee;
+            --ctrl-bg: transparent;
+            --ctrl-hover: transparent;
+            --tile-fill: #ffffff;
+            --token-active-bg: #fff8d6;
+            --collapse-bg: #fff;
+            --collapse-hover-bg: #eee;
+            --collapse-hover-border: #aaa;
+            --link-color: #cccccc;
+            --shadow-color: rgba(0,0,0,0.1);
+            --modal-overlay: rgba(0,0,0,0.5);
+            --rule-target-bg: rgba(0, 0, 0, 0.05);
+            --shadow-svg: rgba(0,0,0,0.35);
+            --shadow-token: rgba(0,0,0,0.3);
+        }[data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --topic-color: #cccccc;
+            --dot-color: #333333;
+            --panel-bg: #2a2a2a;
+            --panel-border: #444;
+            --text-primary: #eeeeee;
+            --text-secondary: #aaaaaa;
+            --btn-bg: #333;
+            --btn-border: #555;
+            --btn-hover-bg: #444;
+            --btn-hover-border: #888;
+            --btn-active-bg: #555;
+            --btn-active-border: #eee;
+            --modal-p-bg: #222;
+            --modal-p-border: #555;
+            --input-border: #555;
+            --cancel-bg: #444;
+            --ctrl-bg: transparent;
+            --ctrl-hover: transparent;
+            --tile-fill: #262626;
+            --token-active-bg: #4a4115;
+            --collapse-bg: #333;
+            --collapse-hover-bg: #444;
+            --collapse-hover-border: #666;
+            --link-color: #555555;
+            --shadow-color: rgba(0,0,0,0.4);
+            --modal-overlay: rgba(0,0,0,0.7);
+            --rule-target-bg: rgba(255, 255, 255, 0.05);
+            --shadow-svg: rgba(0,0,0,0.4);
+            --shadow-token: rgba(0,0,0,0.6);
+        }[data-theme="dark"] #revise-topic-modal .btn-submit,[data-theme="dark"] #accept-topic-modal .btn-submit,[data-theme="dark"] #accept-reason-modal .btn-submit,[data-theme="dark"] #add-modal[data-stance="topic"] .btn-submit,[data-theme="dark"] #rule-modal[data-stance="topic"] .btn-submit,[data-theme="dark"] #start-modal .btn-submit,[data-theme="dark"] #team-modal .btn-submit,[data-theme="dark"] #game-id-modal .btn-submit {
+            color: #1a1a1a;
+        }[data-theme="dark"] .modal-content textarea:focus { box-shadow: 0 0 0 4px rgba(255,255,255,0.05); }[data-theme="dark"] .modal-content input[type="text"]:focus { box-shadow: 0 0 0 4px rgba(255,255,255,0.05); }
+
+        * { box-sizing: border-box; user-select: none; }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(var(--dot-color) 1px, transparent 1px);
+            background-size: 20px 20px;
+            font-family: 'Nunito', sans-serif;
+            color: var(--text-primary);
+            overflow: hidden;
+            width: 100vw; height: 100vh;
+            touch-action: none; /* Helps with touch gestures */
+        }
+
+        /* --- UI LAYER --- */
+        #ui-layer {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none; z-index: 100;
+        }
+
+        #scoreboard {
+            background: transparent; padding: 0 15px; height: 45px;
+            border: none; filter: drop-shadow(0 4px 6px var(--shadow-color)); pointer-events: auto;
+            display: flex; align-items: center; gap: 20px; font-size: var(--font-size-score); font-weight: bold;
+        }
+        .score-plus { color: var(--yes-color); }
+        .score-minus { color: var(--no-color); }
+
+        #disconnect-btn {
+            position: absolute; top: 20px; right: 20px;
+            width: 45px; height: 45px; border-radius: 50%;
+            background: var(--panel-bg); border: 2px solid var(--panel-border); font-size: 20px;
+            cursor: pointer; box-shadow: 0 4px 6px var(--shadow-color);
+            color: var(--text-primary); display: none; align-items: center; justify-content: center;
+            pointer-events: auto; transition: transform 0.2s; z-index: 1000;
+        }
+        #disconnect-btn:hover { transform: scale(1.1); }
+
+        /* --- MODAL POPUPS --- */
+        #rule-modal, #add-modal, #revise-topic-modal, #accept-topic-modal, #accept-reason-modal, #win-modal, #start-modal, #team-modal, #game-id-modal {
+            --modal-accent: var(--yes-color);
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: var(--modal-overlay); z-index: 2000;
+            align-items: var(--popup-vertical-position); justify-content: center; pointer-events: auto;
+            padding-top: var(--popup-padding-top);
+        }
+        #add-modal[data-stance="minus"], #rule-modal[data-stance="minus"] {
+            --modal-accent: var(--no-color);
+        }
+        #rule-modal[data-stance="topic"], #add-modal[data-stance="topic"], #revise-topic-modal, #accept-topic-modal, #start-modal, #team-modal, #game-id-modal {
+            --modal-accent: var(--topic-color);
+        }
+        .modal-content {
+            background: var(--panel-bg); padding: 32px; border-radius: 24px;
+            width: 480px; max-width: 90%; box-shadow: 0 20px 40px var(--shadow-color);
+            font-family: 'Nunito', sans-serif; border: 1px solid var(--panel-border);
+        }
+        .modal-content h3 { margin-top: 0; font-size: var(--font-size-modal-title); color: var(--text-primary); display: flex; align-items: center; gap: 10px; font-weight: 800; margin-bottom: 24px; }
+        .modal-content p { color: var(--text-primary); font-size: var(--font-size-modal-p); background: var(--modal-p-bg); padding: 16px; border-radius: 16px; font-weight: 600; font-style: normal; margin-bottom: 24px; line-height: 1.6; border: none; }
+        .modal-content p:empty { display: none; }
+        .modal-content textarea { width: 100%; height: 120px; padding: 16px; background: transparent; color: var(--text-primary); border: 2px solid var(--input-border); border-radius: 16px; font-family: 'Nunito', sans-serif; font-size: var(--font-size-modal-p); font-weight: 600; resize: none; outline: none; margin-bottom: 8px; transition: all 0.2s; }
+        .modal-content textarea:focus { border-color: var(--modal-accent); box-shadow: 0 0 0 4px rgba(0,0,0,0.05); }
+        .modal-content input[type="text"] {
+            flex: 1; width: 100%; height: 50px; padding: 0 20px; background: transparent; color: var(--text-primary); border: 2px solid var(--input-border); border-radius: 50px; font-family: 'Nunito', sans-serif; font-size: var(--font-size-btn); font-weight: 600; outline: none; transition: all 0.2s;
+        }
+        .modal-content input[type="text"]:focus {
+            border-color: var(--modal-accent); box-shadow: 0 0 0 4px rgba(0,0,0,0.05);
+        }
+        
+        .char-counter {
+            text-align: right; font-size: 13px; color: var(--text-secondary);
+            margin-top: 0; margin-bottom: 24px; font-weight: 600; font-family: 'Nunito', sans-serif;
+        }
+
+        .modal-actions { display: flex; gap: 12px; justify-content: flex-end; }
+        .modal-actions button, button.btn-submit, button.btn-cancel { padding: 12px 24px; border: none; border-radius: 50px; cursor: pointer; font-weight: 800; font-size: var(--font-size-btn); transition: all 0.2s; box-shadow: 0 4px 10px var(--shadow-color); }
+        .modal-actions button:active, button.btn-submit:active, button.btn-cancel:active { transform: scale(0.95); }
+        .btn-submit { background: var(--modal-accent); color: white; }
+        .btn-submit:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 6px 14px var(--shadow-color); }
+        .btn-cancel { background: var(--cancel-bg); color: var(--text-primary); }
+        .btn-cancel:hover { background: var(--panel-border); transform: translateY(-2px); }
+
+        ::placeholder { color: var(--text-secondary); opacity: 0.8; font-weight: 500; }
+
+        /* --- CONTROLS --- */
+        #controls {
+            position: absolute; bottom: 20px; right: 20px;
+            display: flex; gap: 10px; pointer-events: auto; align-items: center;
+        }
+        .ctrl-btn {
+            width: 45px; height: 45px; border-radius: 50%;
+            background: transparent; border: none; font-size: var(--icon-size-ctrl);
+            cursor: pointer; filter: drop-shadow(0 4px 6px var(--shadow-color)); color: var(--text-primary);
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.2s;
+            -webkit-appearance: none;
+            appearance: none;
+            outline: none;
+            padding: 0;
+            margin: 0;
+            font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+        }
+        .ctrl-btn:hover { transform: scale(1.1); }
+
+        /* --- MULTIPLAYER BUTTON CUSTOM STYLES --- */
+        .mp-btn-custom {
+            position: relative;
+            padding: 0;
+        }
+        #mp-ring {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        #mp-ring.ring-blue { border-color: #4A90E2; }
+        #mp-ring.ring-golden { border-color: #FFD700; }
+        #mp-ring.ring-red { border-color: #FF3B30; }
+
+        #mp-counts {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 900;
+            line-height: 1.1;
+            z-index: 2;
+        }
+        .mp-count-plus { color: var(--yes-color); margin-bottom: 2px; }
+        .mp-count-minus { color: var(--no-color); }
+
+        /* --- TIMER BUTTON --- */
+        #timer-btn {
+            position: absolute; bottom: 20px; left: 20px;
+            width: 45px; height: 45px; border-radius: 50%;
+            background: transparent; border: none;
+            font-size: var(--icon-size-ctrl); font-family: 'League Gothic', sans-serif;
+            cursor: pointer; filter: drop-shadow(0 4px 6px var(--shadow-color)); color: var(--text-primary);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            pointer-events: auto; transform-origin: bottom left;
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), color 0.3s;
+            z-index: 1000; user-select: none; line-height: 1;
+        }
+        #timer-btn:hover { transform: scale(1.1); }
+        #timer-btn.active {
+            transform: scale(3);
+            background: transparent;
+            color: var(--no-color);
+        }
+        #timer-btn.active:hover { transform: scale(3); }
+
+        .timer-cancel-text {
+            font-size: 5px;
+            font-family: 'Nunito', sans-serif;
+            white-space: nowrap;
+            margin-top: 2px;
+            color: var(--text-secondary);
+            font-weight: normal;
+            letter-spacing: 0.2px;
+            display: block;
+        }
+
+        /* --- VIEWPORT & CANVAS --- */
+        #viewport { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; cursor: grab; overflow: hidden; }
+        #viewport:active { cursor: grabbing; }
+        #canvas { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+        #links-layer { position: absolute; top: 0; left: 0; overflow: visible; pointer-events: none; z-index: 100; }
+
+        /* --- PERFORMANCE TWEAKS --- */
+        #canvas {
+            will-change: transform;
+            transform: translateZ(0);
+            backface-visibility: hidden;
+        }
+
+        #viewport.is-interacting #canvas {
+            pointer-events: none !important;
+        }
+
+        .tile {
+            contain: layout style;
+        }
+
+        .tile-svg, .display-token {
+            will-change: filter, transform;
+            transform: translateZ(0);
+            backface-visibility: hidden;
+        }
+
+        /* --- TILES --- */
+        .tile {
+            position: absolute; width: var(--tile-size); height: var(--tile-size);
+            transform: translate(-50%, -50%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            pointer-events: auto; cursor: default;
+            transition: left 0.4s cubic-bezier(0.25, 1, 0.5, 1), top 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .tile-svg { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; 
+            filter: drop-shadow(0px 3px 6px var(--shadow-svg));
+        }
+        
+        .tile-content {
+            position: relative; z-index: 2; width: 190px; height: 190px;
+            display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 5px 0;
+        }
+
+        .tile-header { font-family: 'League Gothic', sans-serif; text-transform: uppercase; font-size: var(--font-size-header); letter-spacing: 1px; }
+        
+        .tile-text {
+            width: 95%; flex-grow: 1; margin: 2px 0; border: none; resize: none;
+            background: transparent; text-align: center; font-family: 'Nunito', sans-serif;
+            font-size: var(--font-size-base); color: var(--text-primary); outline: none; overflow-y: auto;
+            display: flex; align-items: center; justify-content: center; word-break: break-word;
+            white-space: pre-wrap;
+        }
+        .tile-text:empty::before { content: attr(data-placeholder); color: var(--text-secondary); opacity: 0.8; }
+        
+        .tile-footer { font-weight: bold; font-size: var(--font-size-footer); letter-spacing: 3px; }
+
+        .plus .tile-header, .plus .tile-footer { color: var(--yes-color); }
+        .minus .tile-header, .minus .tile-footer { color: var(--no-color); }
+        .topic .tile-header { color: var(--topic-color); }
+        .topic .tile-footer { color: var(--topic-color); font-family: 'League Gothic', sans-serif; letter-spacing: 1px; font-size: var(--font-size-topic-footer); }
+
+        /* --- ADD BUTTONS --- */
+        .add-btn {
+            position: absolute; width: var(--icon-size-add-btn); height: var(--icon-size-add-btn); border-radius: 50%;
+            background: var(--btn-bg); border: 2px solid; cursor: pointer; z-index: 10;
+            display: flex; align-items: center; justify-content: center;
+            font-size: var(--icon-size-add); font-weight: bold; opacity: 0; pointer-events: none; transition: all 0.2s;
+            box-shadow: 0 2px 5px var(--shadow-color); color: var(--text-primary);
+        }
+        .tile.show-options .add-btn { opacity: 1; pointer-events: auto; }
+        .topic .add-btn { opacity: 1; pointer-events: auto; }
+        .add-btn:hover { transform: translate(-50%, -50%) scale(1.15); }
+
+        /* Exact geometrical midpoints of the octagon's diagonal faces */
+        .token-tl { top: 37.5px; left: 37.5px; transform: translate(-50%, -50%); }
+        .token-tr { top: 37.5px; left: 202.5px; transform: translate(-50%, -50%); }
+        .token-bl { top: 202.5px; left: 37.5px; transform: translate(-50%, -50%); }
+        .token-br { top: 202.5px; left: 202.5px; transform: translate(-50%, -50%); }
+
+        .add-tl { top: 0px; left: 0px; transform: translate(-50%, -50%); }
+        .add-tr { top: 0px; left: 240px; transform: translate(-50%, -50%); }
+        .add-bl { top: 240px; left: 0px; transform: translate(-50%, -50%); }
+        .add-br { top: 240px; left: 240px; transform: translate(-50%, -50%); }
+
+        .plus .add-btn { border-color: var(--yes-color); color: var(--yes-color); }
+        .minus .add-btn { border-color: var(--no-color); color: var(--no-color); }
+        
+        .topic .add-tl, .topic .add-tr { border-color: var(--yes-color); color: var(--yes-color); }
+        .topic .add-bl, .topic .add-br { border-color: var(--no-color); color: var(--no-color); }
+
+        /* Hide logic for stack / thread edges / resolutions */
+        .has-child-tl .add-tl, .has-child-tr .add-tr, .has-child-bl .add-bl, .has-child-br .add-br,
+        .has-child-tl .token-btn-add, .has-child-tr .token-btn-add, .has-child-bl .token-btn-add, .has-child-br .token-btn-add { display: none !important; }
+        .collapsed-thread .add-btn { display: none !important; }
+        .resolved-tile .add-btn { display: none !important; }
+
+        /* --- TOKENS & COLLAPSE UI --- */
+        .token-bar {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            display: flex; flex-direction: column; gap: 10px;
+            z-index: 10; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+        }
+        .tile.show-options .token-bar { opacity: 1; pointer-events: auto; }
+        
+        .token-btn {
+            background: var(--btn-bg); border: 2px solid var(--btn-border); border-radius: 12px;
+            padding: 8px 16px; cursor: pointer; box-shadow: 0 4px 8px var(--shadow-color);
+            display: flex; align-items: center; justify-content: flex-start; gap: 10px;
+            font-family: 'Nunito', sans-serif; font-size: var(--font-size-btn); font-weight: bold;
+            color: var(--text-primary); white-space: nowrap; transition: transform 0.1s;
+        }
+        .token-btn:hover { transform: scale(1.05); }
+        .token-btn.active { background: var(--token-active-bg); border-color: #ffd700; }
+        .token-icon { font-size: var(--icon-size-token); line-height: 1; }
+
+        /* Rule mini menu for double click actions */
+        .mini-rule-menu {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: var(--panel-bg); border: 2px solid var(--panel-border);
+            border-radius: 8px; padding: 10px; display: none; flex-direction: column; gap: 8px;
+            box-shadow: 0 4px 10px var(--shadow-color); z-index: 30;
+        }
+        .mini-rule-menu button {
+            background: var(--btn-bg); color: var(--text-primary); border: 1px solid var(--btn-border);
+            padding: 8px 12px; border-radius: 4px; cursor: pointer; font-family: 'Nunito', sans-serif; 
+            font-size: var(--font-size-btn); font-weight: bold; white-space: nowrap;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .mini-rule-menu button:hover { background: var(--btn-hover-bg); }
+        .mini-rule-icon { font-size: var(--mini-rule-icon-size); line-height: 1; }
+
+        /* The placed token mark */
+        .display-token {
+            position: absolute; font-size: var(--icon-size-display-token); z-index: 25; 
+            filter: drop-shadow(0px 4px 5px var(--shadow-token)); pointer-events: none;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popIn { 
+            0% { transform: translate(-50%, -50%) scale(0); } 
+            100% { transform: translate(-50%, -50%) scale(1); } 
+        }
+
+        .temp-popup {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: var(--panel-bg); color: var(--text-primary);
+            border: 2px solid var(--panel-border); padding: 8px 12px;
+            border-radius: 8px; font-family: 'Nunito', sans-serif;
+            font-weight: 800; font-size: 14px; text-align: center;
+            z-index: 100; box-shadow: 0 4px 10px var(--shadow-color);
+            pointer-events: none; animation: fadeOutPopup 2s forwards;
+            white-space: nowrap;
+        }
+
+        @keyframes fadeOutPopup {
+            0% { opacity: 0; transform: translate(-50%, -40%); }
+            10% { opacity: 1; transform: translate(-50%, -50%); }
+            80% { opacity: 1; transform: translate(-50%, -50%); }
+            100% { opacity: 0; transform: translate(-50%, -60%); }
+        }
+
+        .collapse-btn {
+            position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%);
+            background: var(--collapse-bg); color: var(--text-primary); border: 2px solid var(--input-border); padding: 6px 12px;
+            border-radius: 20px; cursor: pointer; font-family: 'Nunito', sans-serif; font-weight: bold;
+            box-shadow: 0 4px 10px var(--shadow-color); z-index: 20; white-space: nowrap; transition: 0.2s;
+        }
+        .collapse-btn:hover { background: var(--collapse-hover-bg); border-color: var(--collapse-hover-border); }
+
+        /* --- RULE CARD INTERACTION --- */
+        body.rule-mode .tile:not(.topic) .rule-target { display: block; }
+        .rule-target {
+            display: none; position: absolute; inset: 0; z-index: 20;
+            cursor: crosshair; background: var(--rule-target-bg); border-radius: 50%;
+        }
+
+        /* --- RULE CARD SYMBOL --- */
+        .rule-card-symbol {
+            position: absolute;
+            left: 50%;
+            top: 100%;
+            z-index: -1;
+            pointer-events: none;
+            filter: drop-shadow(0px 4px 6px var(--shadow-token));
+        }
+        .collapsed-thread .rule-card-symbol {
+            display: none !important;
+        }
+
+        /* --- TEAM RESTRICTIONS --- */
+        body[data-team="plus"] .topic .add-bl, 
+        body[data-team="plus"] .topic .add-br { display: none !important; }
+
+        body[data-team="plus"] .plus .add-btn,
+        body[data-team="plus"] .plus .token-btn-add { display: none !important; }
+
+        body[data-team="plus"] .plus .btn-rule { display: none !important; }
+
+        body[data-team="minus"] .topic .add-tl, 
+        body[data-team="minus"] .topic .add-tr { display: none !important; }
+
+        body[data-team="minus"] .minus .add-btn,
+        body[data-team="minus"] .minus .token-btn-add { display: none !important; }
+
+        body[data-team="minus"] .minus .btn-rule { display: none !important; }
+
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <button id="disconnect-btn" title="Disconnect" onclick="handleDisconnectClick()" ondblclick="handleDisconnectClick()">❌</button>
+        <button id="timer-btn" onpointerdown="handleTimerInteraction(event)" title="60s Timer">⏱️</button>
+        <div id="controls">
+            <div id="scoreboard">
+                <div class="score-plus"><span id="score-plus">0</span></div>
+                <div class="score-minus"><span id="score-minus">0</span></div>
+            </div>
+            <button class="ctrl-btn mp-btn-custom" onclick="showGameIdModal()" title="Multiplayer">
+                <div id="mp-ring" class="ring-red"></div>
+                <div id="mp-counts" style="display: none;">
+                    <div id="mp-plus-count" class="mp-count-plus">0</div>
+                    <div id="mp-minus-count" class="mp-count-minus">0</div>
+                </div>
+            </button>
+            <button class="ctrl-btn" onclick="toggleTheme()" title="Toggle Dark Theme">🌓</button>
+            <button class="ctrl-btn" onclick="resetView()">⌂</button>
+        </div>
+    </div>
+
+    <!-- Start Modal -->
+    <div id="start-modal">
+        <div class="modal-content">
+            <h3>🌐 Point Taken</h3>
+            <p id="mp-status"></p>
+            <div class="modal-actions" style="justify-content: flex-start; margin-bottom: 16px;">
+                <button class="btn-submit" onclick="hostGame()" style="width: 100%;">Host Game</button>
+            </div>
+            <div style="text-align: center; font-size: 20px; font-weight: 800; color: var(--text-secondary); margin-bottom: 16px;">OR</div>
+            <div style="display: flex; gap: 12px; margin-bottom: 8px;">
+                <input type="text" id="mp-join-id" placeholder="Paste Host ID here...">
+                <button class="btn-submit" onclick="joinGame()" style="white-space: nowrap;">Join Game</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Modal -->
+    <div id="team-modal">
+        <div class="modal-content" style="text-align: center;">
+            <h3 style="justify-content: center;">Choose Your Team</h3>
+            <p style="margin-bottom: 12px; background: transparent; padding: 0;">Topic:</p>
+            <p id="team-modal-topic" style="color: var(--topic-color); font-size: var(--font-size-header); font-weight: 800; word-break: break-word;"></p>
+            
+            <p style="text-align: left;">
+                The Green team believes that the proposition is true and the Orange team that it is false or they don't know (agnostic's position).
+            </p>
+
+            <div style="display: flex; gap: 12px; justify-content: center;">
+                <button class="btn-submit" onclick="selectTeam('plus')" style="background: var(--yes-color); width: 50%;">Green Team</button>
+                <button class="btn-submit" onclick="selectTeam('minus')" style="background: var(--no-color); width: 50%;">Orange Team</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game ID Modal -->
+    <div id="game-id-modal">
+        <div class="modal-content" style="text-align: center;">
+            <h3 style="justify-content: center;">Game ID</h3>
+            <p id="game-id-display" style="font-size: 28px; font-weight: 800; margin: 24px 0; user-select: text; letter-spacing: 2px; text-align: center; color: var(--modal-accent);"></p>
+            <div class="modal-actions" style="justify-content: center; gap: 16px;">
+                <button class="btn-submit" onclick="copyGameId()" id="btn-copy-id">Copy ID</button>
+                <button class="btn-cancel" onclick="document.getElementById('game-id-modal').style.display='none'">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Modal -->
+    <div id="add-modal" data-stance="plus">
+        <div class="modal-content">
+            <h3 id="add-modal-title">Add Point</h3>
+            <textarea id="add-modal-text" placeholder="Write your point here..." maxlength="165" oninput="updateCharCounter(this, 'add-modal-char-counter')"></textarea>
+            <div id="add-modal-char-counter" class="char-counter">165 characters left</div>
+            <div class="modal-actions">
+                <button class="btn-cancel" id="add-modal-cancel" onclick="closeAddModal()">Cancel</button>
+                <button class="btn-submit" onclick="submitAddModal()">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rule Card Modal -->
+    <div id="rule-modal">
+        <div class="modal-content">
+            <h3 id="modal-rule-title"></h3>
+            <p><strong style="color:var(--text-primary);">Original:</strong> <span id="modal-original-text"></span></p>
+            <textarea id="modal-new-text" placeholder="Write the revised, better argument here..." maxlength="165" oninput="updateCharCounter(this, 'modal-new-text-char-counter')"></textarea>
+            <div id="modal-new-text-char-counter" class="char-counter">165 characters left</div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeRuleModal()">Cancel</button>
+                <button class="btn-submit" onclick="submitRuleRevision()">Submit Revision</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revise Topic Modal -->
+    <div id="revise-topic-modal">
+        <div class="modal-content">
+            <h3 id="revise-topic-title">✏️ Revise Topic</h3>
+            <p><strong style="color:var(--text-primary);">Original:</strong> <span id="modal-original-topic-text"></span></p>
+            <textarea id="modal-new-topic-text" placeholder="Write the revised topic here..." maxlength="165" oninput="updateCharCounter(this, 'modal-new-topic-char-counter')"></textarea>
+            <div id="modal-new-topic-char-counter" class="char-counter">165 characters left</div>
+            <p style="color: var(--no-color); background: transparent; padding: 0;">If you accidentally got here, PRESS CANCEL!</p>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeReviseTopicModal()">Cancel</button>
+                <button class="btn-submit" onclick="proposeTopicRevision()">Propose Revision</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Accept Topic Revision Modal -->
+    <div id="accept-topic-modal">
+        <div class="modal-content">
+            <h3>🤝 Accept Topic Revision?</h3>
+            <p><strong style="color:var(--text-primary);">Original:</strong> <span id="modal-accept-original-topic-text"></span></p>
+            <p id="modal-proposed-topic-text" style="font-size: var(--font-size-modal-p); font-weight: 800; border: 2px solid var(--modal-accent); word-break: break-word;"></p>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="rejectTopicRevision()">Reject</button>
+                <button class="btn-submit" onclick="acceptTopicRevision()">Accept</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Accept Reason Modal -->
+    <div id="accept-reason-modal">
+        <div class="modal-content">
+            <h3>🤝 Accept Reason Revision?</h3>
+            <p><strong style="color:var(--text-primary);">Original:</strong> <span id="modal-accept-original-reason-text"></span></p>
+            <p id="modal-proposed-reason-text" style="font-size: var(--font-size-modal-p); font-weight: 800; border: 2px solid var(--modal-accent); word-break: break-word;"></p>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="rejectReasonRevision()">Reject</button>
+                <button class="btn-submit" onclick="acceptReasonRevision()">Accept</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Win Modal -->
+    <div id="win-modal">
+        <div class="modal-content" style="text-align: center; border: 3px solid var(--yes-color);">
+            <h1 style="font-size: 40px; margin-bottom: 16px; margin-top: 0; color: var(--text-primary);">🎉 Congratulations! 🎉</h1>
+            <p id="win-message" style="font-size: var(--font-size-header); background: transparent; color: var(--text-primary); padding: 0; margin-bottom: 32px;"></p>
+            <div class="modal-actions" style="justify-content: center;">
+                <button class="btn-submit" onclick="closeWinModal()" style="font-size: var(--font-size-score); padding: 16px 32px;">Keep Playing</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="viewport">
+        <div id="canvas">
+            <svg id="links-layer"></svg>
+        </div>
+    </div>
+
+    <script>
+        // --- QUICK ADJUSTMENT VARIABLES ---
+        const GRID_SPACING = 175; // Distance between separate octagons
+        const THREAD_STACK_OFFSET = 12; // Distance between octagons in a stacked thread
+        const RULE_CARD_SIZE = 86; // Size of the rule card icon placed between octagons
+        const RULE_CARD_OFFSET = 160; // Distance for horizontal overlap when a rule card is played
+        const TIMER_SOUND_URL = 'https://upload.wikimedia.org/wikipedia/commons/3/34/Sound_Effect_-_Bell_Ding.ogg'; // Timer alarm sound file
+        // ----------------------------------
+
+        // --- Core State & Settings ---
+        let scale = 1;
+        let panX = window.innerWidth / 2;
+        let panY = window.innerHeight / 2;
+
+        const gameState = { plusTokens: 0, minusTokens: 0, activeRuleCard: null, pendingRule: null, pendingAdd: null };
+        const RULES = { 
+            'you': { icon: '💓', label: "'You' is Taboo" }, 
+            'clarify': { icon: '👓', label: "Let's Clarify?" }, 
+            'fact': { icon: '🔎', label: "Fact Check?" } 
+        };
+
+        const tiles =[];
+        const threads = {}; // { threadRootId: { isCollapsed: boolean } }
+        let nextId = 1;
+        let transformRaf = null;
+        let playerTeam = null;
+        let windowGameId = null;
+
+        const activeRevisions = {}; // revId -> { type, tileId, ruleId, text, required, approvals: Set() }
+        let myPeerId = null;
+        let currentTopicRevId = null;
+        let currentReasonRevId = null;
+
+        // --- DOM Elements ---
+        const viewport = document.getElementById('viewport');
+        const canvas = document.getElementById('canvas');
+        const linksLayer = document.getElementById('links-layer');
+
+        window.updateCharCounter = function(textarea, counterId) {
+            const limit = 165;
+            const left = limit - textarea.value.length;
+            document.getElementById(counterId).innerText = left + ' characters left';
+        };
+
+        // --- Viewport Panning & Zooming ---
+        let isPanning = false, startX, startY;
+        
+        function updateTransform() {
+            if (!transformRaf) {
+                transformRaf = requestAnimationFrame(() => {
+                    canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+                    transformRaf = null;
+                });
+            }
+        }
+
+        viewport.addEventListener('mousedown', e => {
+            if (e.button === 1) e.preventDefault(); // Prevent middle mouse auto-scroll
+            if (document.getElementById('rule-modal').style.display === 'flex' || 
+                document.getElementById('add-modal').style.display === 'flex' ||
+                document.getElementById('revise-topic-modal').style.display === 'flex' ||
+                document.getElementById('accept-topic-modal').style.display === 'flex' ||
+                document.getElementById('accept-reason-modal').style.display === 'flex' ||
+                document.getElementById('win-modal').style.display === 'flex' ||
+                document.getElementById('start-modal').style.display === 'flex' ||
+                document.getElementById('team-modal').style.display === 'flex' ||
+                document.getElementById('game-id-modal').style.display === 'flex') return; 
+
+            // Prevent panning if clicking a button inside tile
+            if (e.target.closest('button')) return;
+
+            // Close tile options if clicking empty space or starting a MMB drag
+            if (!e.target.closest('.tile') || e.button === 1) {
+                document.querySelectorAll('.tile').forEach(el => {
+                    el.classList.remove('show-options');
+                    const rm = el.querySelector('.mini-rule-menu');
+                    if (rm) rm.style.display = 'none';
+                    const tb = el.querySelector('.token-bar');
+                    if (tb) tb.style.display = '';
+                });
+            }
+
+            isPanning = true; 
+            viewport.classList.add('is-interacting');
+            startX = e.clientX - panX; startY = e.clientY - panY;
+        });
+        
+        window.addEventListener('mousemove', e => {
+            if (!isPanning) return;
+            panX = e.clientX - startX; panY = e.clientY - startY; updateTransform();
+        });
+        
+        window.addEventListener('mouseup', () => {
+            isPanning = false;
+            viewport.classList.remove('is-interacting');
+        });
+        
+        window.addEventListener('mouseleave', () => {
+            isPanning = false;
+            viewport.classList.remove('is-interacting');
+        });
+
+        let wheelTimeout;
+        viewport.addEventListener('wheel', e => {
+            if (document.getElementById('rule-modal').style.display === 'flex' || 
+                document.getElementById('add-modal').style.display === 'flex' ||
+                document.getElementById('revise-topic-modal').style.display === 'flex' ||
+                document.getElementById('accept-topic-modal').style.display === 'flex' ||
+                document.getElementById('accept-reason-modal').style.display === 'flex' ||
+                document.getElementById('win-modal').style.display === 'flex' ||
+                document.getElementById('start-modal').style.display === 'flex' ||
+                document.getElementById('team-modal').style.display === 'flex' ||
+                document.getElementById('game-id-modal').style.display === 'flex') return;
+            e.preventDefault();
+            
+            viewport.classList.add('is-interacting');
+            clearTimeout(wheelTimeout);
+            wheelTimeout = setTimeout(() => viewport.classList.remove('is-interacting'), 150);
+
+            const rect = viewport.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left, mouseY = e.clientY - rect.top;
+            const delta = e.deltaY > 0 ? -0.1 : 0.1;
+            const newScale = Math.min(Math.max(0.2, scale + delta), 2.5);
+            panX = mouseX - (mouseX - panX) * (newScale / scale);
+            panY = mouseY - (mouseY - panY) * (newScale / scale);
+            scale = newScale; updateTransform();
+        }, { passive: false });
+
+        // --- Touch Panning & Zooming ---
+        let touchStartDist = 0;
+        let touchStartScale = 1;
+
+        viewport.addEventListener('touchstart', e => {
+            if (document.getElementById('rule-modal').style.display === 'flex' || 
+                document.getElementById('add-modal').style.display === 'flex' ||
+                document.getElementById('revise-topic-modal').style.display === 'flex' ||
+                document.getElementById('accept-topic-modal').style.display === 'flex' ||
+                document.getElementById('accept-reason-modal').style.display === 'flex' ||
+                document.getElementById('win-modal').style.display === 'flex' ||
+                document.getElementById('start-modal').style.display === 'flex' ||
+                document.getElementById('team-modal').style.display === 'flex' ||
+                document.getElementById('game-id-modal').style.display === 'flex') return;
+
+            viewport.classList.add('is-interacting');
+
+            if (e.touches.length === 1) {
+                if (e.target.closest('button')) return;
+                isPanning = true;
+                startX = e.touches[0].clientX - panX;
+                startY = e.touches[0].clientY - panY;
+            } else if (e.touches.length === 2) {
+                isPanning = false;
+                touchStartDist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                touchStartScale = scale;
+            }
+        }, { passive: false });
+
+        window.addEventListener('touchmove', e => {
+            if (isPanning && e.touches.length === 1) {
+                panX = e.touches[0].clientX - startX;
+                panY = e.touches[0].clientY - startY;
+                updateTransform();
+            } else if (e.touches.length === 2) {
+                e.preventDefault();
+                const dist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                if (touchStartDist === 0) touchStartDist = 1;
+                const newScale = Math.min(Math.max(0.2, touchStartScale * (dist / touchStartDist)), 2.5);
+                
+                const rect = viewport.getBoundingClientRect();
+                const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+                const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+
+                panX = centerX - (centerX - panX) * (newScale / scale);
+                panY = centerY - (centerY - panY) * (newScale / scale);
+
+                scale = newScale;
+                updateTransform();
+                
+                touchStartScale = scale;
+                touchStartDist = dist;
+            }
+        }, { passive: false });
+
+        window.addEventListener('touchend', e => {
+            if (e.touches.length < 2) {
+                if (e.touches.length === 1) {
+                    isPanning = true;
+                    startX = e.touches[0].clientX - panX;
+                    startY = e.touches[0].clientY - panY;
+                } else {
+                    isPanning = false;
+                    viewport.classList.remove('is-interacting');
+                }
+            }
+        });
+
+        function zoom(amount) {
+            const centerX = window.innerWidth / 2, centerY = window.innerHeight / 2;
+            const newScale = Math.min(Math.max(0.2, scale + amount), 2.5);
+            panX = centerX - (centerX - panX) * (newScale / scale);
+            panY = centerY - (centerY - panY) * (newScale / scale);
+            scale = newScale; updateTransform();
+        }
+        function resetView() { scale = 1; panTo(0, 0); }
+
+        function panTo(targetX, targetY) {
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            panX = centerX - targetX * scale;
+            panY = centerY - targetY * scale;
+            canvas.style.transition = 'transform 0.6s cubic-bezier(0.25, 1, 0.5, 1)';
+            updateTransform();
+            setTimeout(() => canvas.style.transition = '', 600);
+        }
+
+        // --- Theme Toggle ---
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            if (currentTheme === 'dark') {
+                document.documentElement.removeAttribute('data-theme');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        }
+
+        // --- Game Logic: Topic Revision & Win States ---
+        window.openReviseTopicModal = function(event) {
+            event.stopPropagation();
+            const topicTile = tiles.find(t => t.stance === 'topic');
+            document.getElementById('modal-original-topic-text').innerText = topicTile.text;
+            document.getElementById('modal-new-topic-text').value = '';
+            updateCharCounter(document.getElementById('modal-new-topic-text'), 'modal-new-topic-char-counter');
+            document.getElementById('revise-topic-modal').style.display = 'flex';
+            setTimeout(() => document.getElementById('modal-new-topic-text').focus(), 100);
+            
+            // hide options
+            document.querySelectorAll('.tile').forEach(el => el.classList.remove('show-options'));
+        };
+
+        window.closeReviseTopicModal = function() {
+            document.getElementById('revise-topic-modal').style.display = 'none';
+        };
+
+        window.proposeTopicRevision = function() {
+            const newText = document.getElementById('modal-new-topic-text').value;
+            if (!newText.trim()) return;
+            closeReviseTopicModal();
+            
+            let requiredApprovals = 1; // self
+            Object.values(peerTeams).forEach(t => requiredApprovals++);
+            
+            const revId = 'topic_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+            activeRevisions[revId] = {
+                type: 'topic', text: newText,
+                required: requiredApprovals, approvals: new Set([myPeerId]),
+                proposerId: myPeerId, team: 'all'
+            };
+            
+            broadcast({cmd: 'proposeRevision', args:[revId, 'topic', null, null, newText, requiredApprovals, 'all', myPeerId]});
+            
+            if (requiredApprovals <= 1) {
+                checkRevisionCompletion(revId);
+            } else {
+                const topicTile = tiles.find(t => t.stance === 'topic');
+                showTemporaryPopup(document.getElementById('tile-' + topicTile.id), "Waiting for all players to accept...");
+            }
+        };
+
+        window.closeAcceptModal = function(revId) {
+            if (currentReasonRevId === revId) {
+                document.getElementById('accept-reason-modal').style.display = 'none';
+                currentReasonRevId = null;
+            }
+            if (currentTopicRevId === revId) {
+                document.getElementById('accept-topic-modal').style.display = 'none';
+                currentTopicRevId = null;
+            }
+        };
+
+        window.showAcceptTopicModal = function(revId, newText) {
+            currentTopicRevId = revId;
+            const topicTile = tiles.find(t => t.stance === 'topic');
+            document.getElementById('modal-accept-original-topic-text').innerText = topicTile.text;
+            document.getElementById('modal-proposed-topic-text').innerText = newText;
+            document.getElementById('accept-topic-modal').style.display = 'flex';
+        };
+
+        window.rejectTopicRevision = function() {
+            if (currentTopicRevId) {
+                broadcast({cmd: 'rejectRevision', args:[currentTopicRevId]});
+                delete activeRevisions[currentTopicRevId];
+                currentTopicRevId = null;
+            }
+            document.getElementById('accept-topic-modal').style.display = 'none';
+        };
+
+        window.acceptTopicRevision = function() {
+            if (currentTopicRevId) {
+                broadcast({cmd: 'approveRevision', args:[currentTopicRevId, myPeerId]});
+                if (activeRevisions[currentTopicRevId]) {
+                    activeRevisions[currentTopicRevId].approvals.add(myPeerId);
+                    checkRevisionCompletion(currentTopicRevId);
+                }
+                currentTopicRevId = null;
+            }
+            document.getElementById('accept-topic-modal').style.display = 'none';
+        };
+
+        window.executeTopicRevision = function(newText) {
+            const topicTile = tiles.find(t => t.stance === 'topic');
+            if (topicTile) {
+                topicTile.text = newText;
+                const tileEl = document.getElementById('tile-' + topicTile.id);
+                if (tileEl) tileEl.querySelector('.tile-text').innerText = newText;
+            }
+            setTimeout(() => showWinModal("The topic was successfully revised and accepted by peers! Collective Win!"), 300);
+        };
+
+        window.showAcceptReasonModal = function(revId, tileId, ruleId, newText) {
+            currentReasonRevId = revId;
+            const tile = tiles.find(t => t.id === tileId);
+            document.getElementById('modal-accept-original-reason-text').innerText = tile.text || '(empty)';
+            document.getElementById('modal-proposed-reason-text').innerText = newText;
+            
+            const modal = document.getElementById('accept-reason-modal');
+            modal.style.setProperty('--modal-accent', tile.stance === 'plus' ? 'var(--yes-color)' : 'var(--no-color)');
+            modal.style.display = 'flex';
+        };
+
+        window.rejectReasonRevision = function() {
+            if (currentReasonRevId) {
+                broadcast({cmd: 'rejectRevision', args:[currentReasonRevId]});
+                delete activeRevisions[currentReasonRevId];
+                currentReasonRevId = null;
+            }
+            document.getElementById('accept-reason-modal').style.display = 'none';
+        };
+
+        window.acceptReasonRevision = function() {
+            closeRuleModal();
+            if (currentReasonRevId) {
+                broadcast({cmd: 'approveRevision', args:[currentReasonRevId, myPeerId]});
+                if (activeRevisions[currentReasonRevId]) {
+                    activeRevisions[currentReasonRevId].approvals.add(myPeerId);
+                    checkRevisionCompletion(currentReasonRevId);
+                }
+                currentReasonRevId = null;
+            }
+            document.getElementById('accept-reason-modal').style.display = 'none';
+        };
+
+        window.checkRevisionCompletion = function(revId) {
+            const rev = activeRevisions[revId];
+            if (!rev) return;
+            if (rev.approvals.size >= rev.required) {
+                if (rev.type === 'reason') {
+                    executeRuleRevision(rev.tileId, rev.ruleId, rev.text);
+                } else if (rev.type === 'topic') {
+                    executeTopicRevision(rev.text);
+                }
+                delete activeRevisions[revId];
+            }
+        };
+
+        window.showWinModal = function(message) {
+            document.getElementById('win-message').innerText = message;
+            document.getElementById('win-modal').style.display = 'flex';
+        };
+
+        window.closeWinModal = function() {
+            document.getElementById('win-modal').style.display = 'none';
+        };
+
+        function checkCollectiveWin() {
+            const rootIds = Object.keys(threads);
+            if (rootIds.length === 0) return;
+            
+            const allResolved = rootIds.every(rootId => {
+                return tiles.some(t => t.threadRootId == rootId && t.isResolved);
+            });
+            
+            if (allResolved) {
+                setTimeout(() => showWinModal("All threads have been resolved! Collective Win!"), 300);
+            }
+        }
+
+
+        // --- Game Logic: Rule Cards ---
+        function cancelRule() {
+            gameState.activeRuleCard = null; document.body.classList.remove('rule-mode');
+        }
+
+        window.applyRuleToTile = function(tileId, event) {
+            event.stopPropagation(); 
+            if (!gameState.activeRuleCard) return;
+            
+            const ruleId = gameState.activeRuleCard;
+            cancelRule(); // clears activeRuleCard
+
+            broadcast({cmd: 'ruleCardPlayed', args: [tileId, ruleId]});
+            handleRuleCardPlayed(tileId, ruleId);
+        };
+
+        window.closeRuleModal = function() {
+            document.getElementById('rule-modal').style.display = 'none';
+            gameState.pendingRule = null;
+        }
+
+        window.submitRuleRevision = function() {
+            const newText = document.getElementById('modal-new-text').value;
+            const pending = gameState.pendingRule;
+            const tileId = pending.tileId; 
+            const ruleId = pending.ruleId;
+            
+            closeRuleModal();
+            
+            const parentTile = tiles.find(t => t.id === tileId);
+            const team = parentTile.stance;
+            
+            let requiredApprovals = 0;
+            if (playerTeam === team) requiredApprovals++;
+            Object.values(peerTeams).forEach(t => { if (t === team) requiredApprovals++; });
+            
+            const revId = 'rev_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+            activeRevisions[revId] = {
+                type: 'reason', tileId, ruleId, text: newText,
+                required: requiredApprovals, approvals: new Set([myPeerId]),
+                proposerId: myPeerId, team: team
+            };
+            
+            broadcast({cmd: 'proposeRevision', args:[revId, 'reason', tileId, ruleId, newText, requiredApprovals, team, myPeerId]});
+            
+            if (requiredApprovals <= 1) {
+                checkRevisionCompletion(revId);
+            } else {
+                showTemporaryPopup(document.getElementById('tile-' + tileId), "Waiting for teammates to accept...");
+            }
+        }
+
+        window.executeRuleRevision = function(tileId, ruleId, newText) {
+            const parentTile = tiles.find(t => t.id === tileId);
+            if (!parentTile) return;
+            const rule = RULES[ruleId];
+            
+            if (parentTile.stance === 'plus') { 
+                gameState.minusTokens++; document.getElementById('score-minus').innerText = gameState.minusTokens; 
+            } else if (parentTile.stance === 'minus') { 
+                gameState.plusTokens++; document.getElementById('score-plus').innerText = gameState.plusTokens; 
+            }
+            
+            insertRevisionTile(parentTile, newText, rule.icon);
+        };
+
+        window.handleRuleCardPlayed = function(tileId, ruleId) {
+            const tile = tiles.find(t => t.id === tileId);
+            
+            if (tile.stance === playerTeam) {
+                gameState.pendingRule = { tileId: tileId, ruleId: ruleId };
+                const rule = RULES[ruleId];
+                document.getElementById('modal-rule-title').innerHTML = `${rule.icon} ${rule.label}`;
+                document.getElementById('modal-original-text').innerText = tile.text || '(empty)';
+                document.getElementById('modal-new-text').value = '';
+                updateCharCounter(document.getElementById('modal-new-text'), 'modal-new-text-char-counter');
+                document.getElementById('rule-modal').setAttribute('data-stance', tile.stance);
+                document.getElementById('rule-modal').style.display = 'flex';
+                setTimeout(() => document.getElementById('modal-new-text').focus(), 100);
+            }
+        };
+
+        // Quick mini-menu for rules on tile double click
+        window.toggleRuleMenu = function(tileId, event) {
+            event.stopPropagation();
+            const tileEl = document.getElementById('tile-' + tileId);
+            const tokenBar = tileEl.querySelector('.token-bar');
+            let rm = tileEl.querySelector('.mini-rule-menu');
+            if (!rm) {
+                rm = document.createElement('div');
+                rm.className = 'mini-rule-menu';
+                rm.innerHTML = `
+                    <button onclick="applySpecificRule(${tileId}, 'you', event)"><span class="mini-rule-icon">💓</span> 'You' is Taboo</button>
+                    <button onclick="applySpecificRule(${tileId}, 'clarify', event)"><span class="mini-rule-icon">👓</span> Let's Clarify?</button>
+                    <button onclick="applySpecificRule(${tileId}, 'fact', event)"><span class="mini-rule-icon">🔎</span> Fact Check?</button>
+                `;
+                tileEl.appendChild(rm);
+            }
+            if (rm.style.display !== 'flex') {
+                tokenBar.style.display = 'none';
+                rm.style.display = 'flex';
+            } else {
+                rm.style.display = 'none';
+                tokenBar.style.display = '';
+            }
+        };
+
+        window.applySpecificRule = function(tileId, ruleId, event) {
+            if(event) event.stopPropagation();
+            
+            broadcast({cmd: 'ruleCardPlayed', args:[tileId, ruleId]});
+            handleRuleCardPlayed(tileId, ruleId);
+            
+            document.querySelectorAll('.tile').forEach(el => {
+                el.classList.remove('show-options');
+                const tb = el.querySelector('.token-bar');
+                if (tb) tb.style.display = '';
+            });
+            document.querySelectorAll('.mini-rule-menu').forEach(el => el.style.display = 'none');
+        };
+
+        function getDescendants(parentId) {
+            let desc =[];
+            const children = tiles.filter(t => t.parentId === parentId);
+            children.forEach(c => {
+                desc.push(c);
+                desc = desc.concat(getDescendants(c.id));
+            });
+            return desc;
+        }
+
+        function insertRevisionTile(parentTile, newText, ruleIcon) {
+            let dx, dy;
+            if (parentTile.growDirection === 'tr' || parentTile.growDirection === 'br') {
+                dx = RULE_CARD_OFFSET; dy = 0;
+            } else {
+                dx = -RULE_CARD_OFFSET; dy = 0;
+            }
+            
+            // Shift all existing downstream thread pieces smoothly backwards
+            const descendants = getDescendants(parentTile.id);
+            descendants.forEach(d => {
+                d.gridX += dx; d.gridY += dy;
+                d.x += dx; d.y += dy; d.depth += 1;
+                const el = document.getElementById('tile-' + d.id);
+                if (el) { 
+                    el.style.left = d.x + 'px'; 
+                    el.style.top = d.y + 'px'; 
+                    el.style.zIndex = d.depth + 10;
+                }
+            });
+            
+            // Re-wire parents
+            const immediateChild = tiles.find(t => t.parentId === parentTile.id);
+            const newTileId = nextId++;
+            if (immediateChild) {
+                immediateChild.parentId = newTileId;
+            } else {
+                // Parent previously had no children, mark it so it hides its + button
+                const parentEl = document.getElementById('tile-' + parentTile.id);
+                if(parentEl) parentEl.classList.add(`has-child-${parentTile.growDirection}`);
+            }
+
+            // Unresolve parent if it was resolved (Re-opening the segment)
+            parentTile.token = null; 
+            parentTile.isResolved = false;
+            updateTileUI(parentTile.id);
+
+            // Create and inject the revised tile (Same stance/color)
+            const newTile = {
+                id: newTileId, parentId: parentTile.id, 
+                stance: parentTile.stance, growDirection: parentTile.growDirection,
+                gridX: parentTile.gridX + dx, gridY: parentTile.gridY + dy,
+                x: parentTile.gridX + dx, y: parentTile.gridY + dy,
+                text: newText, token: null, isResolved: false,
+                threadRootId: parentTile.threadRootId, depth: parentTile.depth + 1,
+                ruleIcon: ruleIcon
+            };
+            tiles.push(newTile);
+            renderTile(newTile);
+            
+            // If there's an immediate child attached to the new one, hide its + button too
+            if (immediateChild) {
+                document.getElementById('tile-' + newTile.id).classList.add(`has-child-${newTile.growDirection}`);
+            }
+
+            // Ensure the thread expands so we can see the inserted change
+            setThreadCollapse(newTile.id, false); 
+            drawLinks();
+        }
+
+
+        // --- Game Logic: Standard Tiles & Threads ---
+        function initGame() {
+            document.getElementById('start-modal').style.display = 'flex';
+            updateTransform();
+        }
+
+        window.closeAddModal = function() {
+            if (gameState.pendingAdd && gameState.pendingAdd.parentId === null) return; // Prevent canceling initial topic
+            document.getElementById('add-modal').style.display = 'none';
+            gameState.pendingAdd = null;
+        };
+
+        window.submitAddModal = function() {
+            const text = document.getElementById('add-modal-text').value;
+            if (!text.trim()) return;
+            
+            const pending = gameState.pendingAdd;
+            
+            if (pending.parentId === null) {
+                addTileData(0, 0, 'topic', 'none', null, text);
+                document.getElementById('add-modal').style.display = 'none';
+                gameState.pendingAdd = null;
+                updateTransform();
+                
+                showTeamModal(text);
+            } else {
+                const parent = tiles.find(t => t.id === pending.parentId);
+                let dx = 0, dy = 0;
+                if (pending.direction === 'tl') { dx = -GRID_SPACING; dy = -GRID_SPACING; }
+                if (pending.direction === 'tr') { dx = GRID_SPACING; dy = -GRID_SPACING; }
+                if (pending.direction === 'bl') { dx = -GRID_SPACING; dy = GRID_SPACING; }
+                if (pending.direction === 'br') { dx = GRID_SPACING; dy = GRID_SPACING; }
+
+                addTileData(parent.gridX + dx, parent.gridY + dy, pending.stance, pending.direction, pending.parentId, text);
+                closeAddModal();
+            }
+        };
+
+        function addTileData(gridX, gridY, stance, growDirection, parentId, text, isRemote = false) {
+            if (!isRemote) broadcast({cmd: 'addTileData', args:[gridX, gridY, stance, growDirection, parentId, text]});
+            let depth = 0; let threadRootId = null;
+            if (parentId) {
+                const parent = tiles.find(t => t.id === parentId);
+                if (parent.stance === 'topic') {
+                    threadRootId = nextId; depth = 1;
+                    threads[threadRootId] = { isCollapsed: false };
+                } else {
+                    threadRootId = parent.threadRootId; depth = parent.depth + 1;
+                }
+                document.getElementById('tile-' + parentId).classList.add(`has-child-${growDirection}`);
+            }
+
+            const tile = {
+                id: nextId++, parentId: parentId, stance: stance, growDirection: growDirection,
+                gridX: gridX, gridY: gridY, x: gridX, y: gridY,
+                text: text || '', token: null, isResolved: false,
+                threadRootId: threadRootId, depth: depth, ruleIcon: null
+            };
+            tiles.push(tile); renderTile(tile); drawLinks();
+        }
+
+        window.handleAddClick = function(parentId, direction) {
+            document.querySelectorAll('.tile').forEach(el => {
+                el.classList.remove('show-options');
+                const tb = el.querySelector('.token-bar');
+                if (tb) tb.style.display = '';
+                const rm = el.querySelector('.mini-rule-menu');
+                if (rm) rm.style.display = 'none';
+            });
+
+            const parent = tiles.find(t => t.id === parentId);
+            let newStance = (parent.stance === 'topic') ? ((direction === 'tl' || direction === 'tr') ? 'plus' : 'minus') : (parent.stance === 'plus' ? 'minus' : 'plus');
+            
+            gameState.pendingAdd = { parentId, direction, stance: newStance };
+            
+            const addModal = document.getElementById('add-modal');
+            if (newStance === 'minus') {
+                addModal.setAttribute('data-stance', 'minus');
+            } else {
+                addModal.setAttribute('data-stance', 'plus');
+            }
+            
+            document.getElementById('add-modal-title').innerText = newStance === 'plus' ? 'Add Supporting Point' : 'Add Counter Point';
+            document.getElementById('add-modal-text').value = '';
+            updateCharCounter(document.getElementById('add-modal-text'), 'add-modal-char-counter');
+            document.getElementById('add-modal-text').placeholder = newStance === 'plus' ? 'Yes, because...' : 'No, because...';
+            document.getElementById('add-modal-cancel').style.display = 'inline-block';
+            
+            addModal.style.display = 'flex';
+            setTimeout(() => document.getElementById('add-modal-text').focus(), 100);
+        };
+
+        // --- Thread Stacking Animations ---
+        function setThreadCollapse(triggerTileId, forceCollapse, isRemote = false) {
+            if (!isRemote) broadcast({cmd: 'setThreadCollapse', args:[triggerTileId, forceCollapse]});
+            const tile = tiles.find(t => t.id === triggerTileId);
+            if (!tile || !tile.threadRootId) return;
+            
+            const rootId = tile.threadRootId;
+            const threadState = threads[rootId];
+            if (threadState.isCollapsed === forceCollapse) return; 
+            
+            threadState.isCollapsed = forceCollapse;
+            const tList = tiles.filter(t => t.threadRootId === rootId);
+            const root = tiles.find(t => t.id === rootId);
+
+            if (forceCollapse) {
+                const sorted =[...tList].sort((a,b) => b.depth - a.depth);
+                drawLinks(); 
+                
+                sorted.forEach((t, i) => {
+                    setTimeout(() => {
+                        const dxMap = { 'tl': -THREAD_STACK_OFFSET, 'tr': THREAD_STACK_OFFSET, 'bl': -THREAD_STACK_OFFSET, 'br': THREAD_STACK_OFFSET };
+                        const dyMap = { 'tl': -THREAD_STACK_OFFSET, 'tr': -THREAD_STACK_OFFSET, 'bl': THREAD_STACK_OFFSET, 'br': THREAD_STACK_OFFSET };
+                        const dx = dxMap[root.growDirection];
+                        const dy = dyMap[root.growDirection];
+                        
+                        t.x = root.gridX + (t.depth - 1) * dx;
+                        t.y = root.gridY + (t.depth - 1) * dy;
+                        
+                        const el = document.getElementById('tile-' + t.id);
+                        el.style.left = t.x + 'px'; el.style.top = t.y + 'px';
+                        el.style.zIndex = t.depth + 10;
+                        el.classList.add('collapsed-thread');
+                    }, i * 150);
+                });
+                panTo(0, 0); 
+                
+            } else {
+                const sorted =[...tList].sort((a,b) => a.depth - b.depth);
+                
+                sorted.forEach((t, i) => {
+                    setTimeout(() => {
+                        t.x = t.gridX; t.y = t.gridY;
+                        
+                        const el = document.getElementById('tile-' + t.id);
+                        el.style.left = t.x + 'px'; el.style.top = t.y + 'px';
+                        el.style.zIndex = t.depth + 10;
+                        el.classList.remove('collapsed-thread');
+                        
+                        drawLinks(); 
+                    }, i * 150);
+                });
+                
+                const lastTile = sorted[sorted.length - 1];
+                panTo(lastTile.gridX, lastTile.gridY);
+            }
+            updateTileUI(triggerTileId);
+        }
+
+        window.toggleToken = function(tileId, tokenType, isRemote = false) {
+            if (!isRemote) {
+                document.querySelectorAll('.tile').forEach(el => {
+                    el.classList.remove('show-options');
+                    const tb = el.querySelector('.token-bar');
+                    if (tb) tb.style.display = '';
+                });
+                broadcast({cmd: 'toggleToken', args:[tileId, tokenType]});
+            }
+
+            const tile = tiles.find(t => t.id === tileId);
+            if (tile.token === tokenType) {
+                tile.token = null; tile.isResolved = false;
+                setThreadCollapse(tileId, false, true); 
+            } else {
+                tile.token = tokenType; tile.isResolved = true;
+                setThreadCollapse(tileId, true, true); 
+            }
+            updateTileUI(tileId);
+
+            if (tile.isResolved) {
+                checkCollectiveWin();
+            }
+        };
+
+        window.toggleCollapse = function(tileId, event) {
+            if(event) event.stopPropagation();
+            const tile = tiles.find(t => t.id === tileId);
+            const currentState = threads[tile.threadRootId].isCollapsed;
+            setThreadCollapse(tileId, !currentState);
+        };
+
+        function updateTileUI(tileId) {
+            const tile = tiles.find(t => t.id === tileId);
+            const el = document.getElementById('tile-' + tileId);
+            if (!el) return;
+
+            if (tile.isResolved) el.classList.add('resolved-tile');
+            else el.classList.remove('resolved-tile');
+
+            el.querySelectorAll('.token-btn').forEach(btn => btn.classList.remove('active'));
+            const existing = el.querySelector('.display-token');
+            if (existing) existing.remove();
+
+            if (tile.token) {
+                el.querySelector('.btn-' + tile.token).classList.add('active');
+                const tDisp = document.createElement('div'); 
+                tDisp.className = `display-token token-${tile.growDirection}`;
+                tDisp.innerText = tile.token === 'thumbs' ? '👍' : '👀';
+                el.appendChild(tDisp);
+            }
+        }
+
+        function showTemporaryPopup(parentEl, message) {
+            if (parentEl.querySelector('.temp-popup')) return;
+            const popup = document.createElement('div');
+            popup.className = 'temp-popup';
+            popup.innerText = message;
+            parentEl.appendChild(popup);
+            setTimeout(() => {
+                if (popup.parentNode) {
+                    popup.parentNode.removeChild(popup);
+                }
+            }, 2000);
+        }
+
+        function renderTile(tile) {
+            const isTopic = tile.stance === 'topic';
+            const color = isTopic ? 'var(--topic-color)' : (tile.stance === 'plus' ? 'var(--yes-color)' : 'var(--no-color)');
+            let headerText = isTopic ? 'TOPIC' : 'reason';
+            let footerText = isTopic ? 'PointTaken' : (tile.stance === 'plus' ? '   ' : '   ');
+            let placeholder = isTopic ? 'Write your topic here...' : (tile.parentId === 1 ? (tile.stance === 'plus' ? 'Yes, because...' : 'No, because...') : 'But...');
+
+            const div = document.createElement('div');
+            div.className = `tile ${tile.stance}`;
+            div.id = `tile-${tile.id}`;
+            div.style.left = `${tile.x}px`; div.style.top = `${tile.y}px`; div.style.zIndex = tile.depth + 10;
+
+            const svgHTML = `<svg class="tile-svg" viewBox="0 0 240 240"><polygon points="70,5 170,5 235,70 235,170 170,235 70,235 5,170 5,70" fill="var(--tile-fill)" stroke="${color}" stroke-width="6" /></svg>`;
+
+            let buttonsHTML = '';
+            if (isTopic) {
+                buttonsHTML += `<div class="add-btn add-tl" onclick="handleAddClick(${tile.id}, 'tl')">+</div><div class="add-btn add-tr" onclick="handleAddClick(${tile.id}, 'tr')">+</div><div class="add-btn add-bl" onclick="handleAddClick(${tile.id}, 'bl')">+</div><div class="add-btn add-br" onclick="handleAddClick(${tile.id}, 'br')">+</div>`;
+            }
+
+            let extraHTML = '';
+            if (isTopic) {
+                extraHTML += `
+                    <div class="token-bar">
+                        <button class="token-btn btn-revise" title="Revise Topic" onclick="openReviseTopicModal(event)"><span class="token-icon">✏️</span> Revise the topic</button>
+                    </div>`;
+            } else {
+                extraHTML += `
+                    <div class="token-bar">
+                        <button class="token-btn token-btn-add" title="Disagree, write your reason" onclick="handleAddClick(${tile.id}, '${tile.growDirection}')"><span class="token-icon">✏️</span> Disagree, write your reason</button>
+                        <button class="token-btn btn-thumbs" title="Agree / Good Point" onclick="toggleToken(${tile.id}, 'thumbs')"><span class="token-icon">👍</span> Agree / Good Point</button>
+                        <button class="token-btn btn-eyes" title="Spot a disagreement" onclick="toggleToken(${tile.id}, 'eyes')"><span class="token-icon">👀</span> Spot a disagreement</button>
+                        <button class="token-btn btn-rule" title="Play a Rule Card" onclick="toggleRuleMenu(${tile.id}, event)"><span class="token-icon">🃏</span> Play a Rule Card</button>
+                    </div><div class="rule-target" onclick="applyRuleToTile(${tile.id}, event)"></div>`;
+            }
+
+            let ruleCardHTML = '';
+            if (tile.ruleIcon) {
+                let dx, dy;
+                if (tile.growDirection === 'tr' || tile.growDirection === 'br') {
+                    dx = RULE_CARD_OFFSET; dy = 0;
+                } else {
+                    dx = -RULE_CARD_OFFSET; dy = 0;
+                }
+                ruleCardHTML = `<div class="rule-card-symbol" style="transform: translate(calc(-50% - ${dx/2}px), calc(-50% - ${dy/2}px)); font-size: ${RULE_CARD_SIZE}px;">${tile.ruleIcon}</div>`;
+            }
+
+            div.innerHTML = `${ruleCardHTML}${svgHTML}<div class="tile-content"><div class="tile-header">${headerText}</div><div class="tile-text" data-placeholder="${placeholder}"></div><div class="tile-footer">${footerText}</div></div>${buttonsHTML}${extraHTML}`;
+            
+            // Safely insert text content
+            div.querySelector('.tile-text').innerText = tile.text;
+
+            // Double click logic for tiles to reveal options
+            div.addEventListener('dblclick', e => {
+                e.stopPropagation();
+
+                if (tile.stance === 'plus' && playerTeam === 'plus') {
+                    showTemporaryPopup(div, "Only the Orange team can activate this!");
+                    return;
+                }
+                if (tile.stance === 'minus' && playerTeam === 'minus') {
+                    showTemporaryPopup(div, "Only the Green team can activate this!");
+                    return;
+                }
+
+                if (tile.isResolved) {
+                    toggleToken(tile.id, tile.token);
+                    return;
+                }
+                const isLeaf = !tiles.some(t => t.parentId === tile.id);
+                // Allow double click to open options if it is the last octagon in a thread or the initial topic tile
+                if (isLeaf || tile.stance === 'topic') {
+                    document.querySelectorAll('.tile').forEach(el => {
+                        el.classList.remove('show-options');
+                        const rm = el.querySelector('.mini-rule-menu');
+                        if (rm) rm.style.display = 'none';
+                        const tb = el.querySelector('.token-bar');
+                        if (tb) tb.style.display = '';
+                    });
+                    div.classList.add('show-options');
+                }
+            });
+
+            canvas.appendChild(div);
+        }
+
+        function drawLinks() {
+            linksLayer.innerHTML = ''; linksLayer.style.width = '1px'; linksLayer.style.height = '1px';
+
+            tiles.forEach(tile => {
+                if (tile.parentId !== null) {
+                    if (tile.threadRootId && threads[tile.threadRootId].isCollapsed) {
+                        if (tile.depth > 1) return; 
+                    }
+                    // Basic parent-child lines could be drawn here if needed
+                }
+            });
+        }
+
+        // --- Timer Logic ---
+        let timerInterval = null;
+        let isTimerActive = false;
+        let timeLeft = 60;
+        let timerLastTap = 0;
+        let timerAudio = null;
+
+        function initAudio() {
+            if (!timerAudio) {
+                timerAudio = new Audio(TIMER_SOUND_URL);
+            }
+        }
+
+        window.handleTimerInteraction = function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            
+            const currentTime = Date.now();
+            const tapLength = currentTime - timerLastTap;
+            
+            if (isTimerActive) {
+                if (tapLength < 400 && tapLength > 0) {
+                    resetTimer();
+                    timerLastTap = 0;
+                } else {
+                    timerLastTap = currentTime;
+                }
+            } else {
+                if (tapLength < 400 && tapLength > 0) {
+                    startTimer();
+                    timerLastTap = 0;
+                } else {
+                    timerLastTap = currentTime;
+                }
+            }
+        };
+
+        function startTimer(isRemote = false) {
+            if (typeof isRemote !== 'boolean') isRemote = false;
+            if (!isRemote) broadcast({cmd: 'startTimer', args:[]});
+            initAudio();
+            isTimerActive = true;
+            timeLeft = 60;
+            const btn = document.getElementById('timer-btn');
+            btn.classList.add('active');
+            btn.innerHTML = `<div class="timer-time">${timeLeft}</div><div class="timer-cancel-text">Tap 2x to cancel</div>`;
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft > 0) {
+                    const timeEl = btn.querySelector('.timer-time');
+                    if (timeEl) timeEl.innerText = timeLeft;
+                } else {
+                    clearInterval(timerInterval);
+                    const timeEl = btn.querySelector('.timer-time');
+                    if (timeEl) timeEl.innerText = '0';
+                    playTimerSound();
+                    setTimeout(() => {
+                        resetTimer(true); // Automatically resets, prevent recursive broadcast since it's deterministic
+                    }, 2000);
+                }
+            }, 1000);
+        }
+
+        function resetTimer(isRemote = false) {
+            if (typeof isRemote !== 'boolean') isRemote = false;
+            if (!isRemote) broadcast({cmd: 'resetTimer', args:[]});
+            isTimerActive = false;
+            clearInterval(timerInterval);
+            const btn = document.getElementById('timer-btn');
+            btn.classList.remove('active');
+            btn.innerText = '⏱️';
+        }
+
+        function playTimerSound() {
+            try {
+                if (!timerAudio) initAudio();
+                timerAudio.currentTime = 0;
+                timerAudio.play();
+            } catch(e) {
+                console.error("Audio playback failed", e);
+            }
+        }
+
+        // --- WebRTC Multiplayer Logic ---
+        let peer = null;
+        let connections =[];
+        let isHost = false;
+        let peerTeams = {};
+        let peerLastSeen = {};
+
+        function updateMultiplayerButton() {
+            const mpRing = document.getElementById('mp-ring');
+            const mpCounts = document.getElementById('mp-counts');
+            const mpPlus = document.getElementById('mp-plus-count');
+            const mpMinus = document.getElementById('mp-minus-count');
+            const disconnectBtn = document.getElementById('disconnect-btn');
+
+            let isConnected = false;
+            
+            const now = Date.now();
+            for (let id in peerLastSeen) {
+                if (now - peerLastSeen[id] > 8000) {
+                    delete peerLastSeen[id];
+                    delete peerTeams[id];
+                }
+            }
+
+            let hasActivePeers = Object.keys(peerLastSeen).length > 0;
+
+            if (peer && !peer.disconnected && !peer.destroyed) {
+                if (isHost) {
+                    isConnected = true;
+                } else if (hasActivePeers || connections.some(c => c.open)) {
+                    isConnected = true;
+                }
+            }
+
+            if (isConnected) {
+                disconnectBtn.style.display = 'flex';
+            } else {
+                disconnectBtn.style.display = 'none';
+            }
+
+            if (!isConnected) {
+                mpRing.className = 'ring-red';
+                mpCounts.style.display = 'none';
+            } else {
+                if (isHost && hasActivePeers) {
+                    mpRing.className = 'ring-golden';
+                } else {
+                    mpRing.className = 'ring-blue';
+                }
+                mpCounts.style.display = 'flex';
+
+                let plusCount = playerTeam === 'plus' ? 1 : 0;
+                let minusCount = playerTeam === 'minus' ? 1 : 0;
+
+                Object.values(peerTeams).forEach(team => {
+                    if (team === 'plus') plusCount++;
+                    if (team === 'minus') minusCount++;
+                });
+
+                mpPlus.innerText = plusCount;
+                mpMinus.innerText = minusCount;
+            }
+        }
+
+        setInterval(() => {
+            if (peer && !peer.disconnected && !peer.destroyed) {
+                connections = connections.filter(c => c.open);
+                if (connections.length > 0) {
+                    broadcast({cmd: 'heartbeat', args:[peer.id, playerTeam || 'none']});
+                }
+            }
+        }, 2000);
+
+        setInterval(updateMultiplayerButton, 1000);
+
+        window.handleDisconnectClick = function(e) {
+            if(e) { e.preventDefault(); e.stopPropagation(); }
+            if (confirm("Are you sure you want to disconnect?")) {
+                if (peer) {
+                    peer.destroy();
+                    peer = null;
+                }
+                connections =[];
+                peerLastSeen = {};
+                peerTeams = {};
+                isHost = false;
+                window.gameId = null;
+                updateMultiplayerButton();
+            }
+        };
+
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible") {
+                // Wait 1.5 seconds to allow mobile network interfaces to fully wake up before reconnecting
+                setTimeout(() => {
+                    if (isHost && window.gameId) {
+                        if (peer && !peer.destroyed && peer.disconnected) {
+                            peer.reconnect();
+                        } else if (!peer || peer.destroyed) {
+                            peer = new Peer(window.gameId); // Try to reclaim the host ID
+                            peer.on('open', id => { myPeerId = id; });
+                            peer.on('connection', conn => { setupConnection(conn); });
+                        }
+                    } else if (!isHost && window.gameId) {
+                        let hostConn = connections.find(c => c.peer === window.gameId && c.open);
+                        let isHostDead = peerLastSeen[window.gameId] && (Date.now() - peerLastSeen[window.gameId] > 8000);
+
+                        if (!hostConn || isHostDead || !peer || peer.destroyed || peer.disconnected) {
+                            document.getElementById('mp-status').innerText = 'Reconnecting...';
+                            if (peer) {
+                                peer.destroy();
+                                peer = null;
+                            }
+                            // Create a fresh peer to reconnect to the host
+                            peer = new Peer();
+                            peer.on('open', myId => {
+                                myPeerId = myId;
+                                const conn = peer.connect(window.gameId);
+                                setupConnection(conn);
+                            });
+                            peer.on('error', err => {
+                                console.log('Reconnect error', err);
+                            });
+                        }
+                    }
+                }, 1500); // 1.5s delay
+            }
+        });
+
+        window.hostGame = function() {
+            document.getElementById('mp-status').innerText = 'Generating ID...';
+            peer = new Peer();
+            peer.on('open', id => {
+                window.gameId = id;
+                myPeerId = id;
+                isHost = true;
+                document.getElementById('start-modal').style.display = 'none';
+                
+                gameState.pendingAdd = { parentId: null, direction: 'none', stance: 'topic' };
+                document.getElementById('add-modal').setAttribute('data-stance', 'topic');
+                document.getElementById('add-modal-title').innerText = 'Set Topic';
+                document.getElementById('add-modal-text').value = '';
+                updateCharCounter(document.getElementById('add-modal-text'), 'add-modal-char-counter');
+                document.getElementById('add-modal-text').placeholder = 'Write your topic here...';
+                document.getElementById('add-modal-cancel').style.display = 'none';
+                document.getElementById('add-modal').style.display = 'flex';
+                setTimeout(() => document.getElementById('add-modal-text').focus(), 100);
+            });
+            peer.on('connection', conn => {
+                setupConnection(conn);
+            });
+            peer.on('error', err => {
+                document.getElementById('mp-status').innerText = 'Error: ' + err.type;
+            });
+        };
+
+        window.joinGame = function() {
+            const id = document.getElementById('mp-join-id').value.trim();
+            if(!id) return;
+            document.getElementById('mp-status').innerText = 'Connecting...';
+            peer = new Peer();
+            peer.on('open', myId => {
+                myPeerId = myId;
+                const conn = peer.connect(id);
+                setupConnection(conn);
+                window.gameId = id;
+            });
+            peer.on('error', err => {
+                document.getElementById('mp-status').innerText = 'Error: ' + err.type;
+            });
+        };
+
+        function setupConnection(conn) {
+            connections.push(conn);
+            conn.on('open', () => {
+                const mpStatus = document.getElementById('mp-status');
+                if(mpStatus) mpStatus.innerText = 'Connected!';
+                setTimeout(() => document.getElementById('start-modal').style.display = 'none', 1000);
+                if (isHost) {
+                    const serializableRevisions = {};
+                    for (let id in activeRevisions) {
+                        serializableRevisions[id] = { ...activeRevisions[id], approvals: Array.from(activeRevisions[id].approvals) };
+                    }
+                    
+                    conn.send({
+                        cmd: 'fullSync',
+                        args:[{
+                            tiles: tiles,
+                            threads: threads,
+                            nextId: nextId,
+                            gameState: gameState,
+                            activeRevisions: serializableRevisions
+                        }]
+                    });
+                }
+            });
+            conn.on('data', data => {
+                handleNetworkCommand(data, conn);
+            });
+            conn.on('close', () => {
+                connections = connections.filter(c => c.open);
+            });
+        }
+
+        function broadcast(data) {
+            connections.forEach(conn => {
+                try {
+                    conn.send(data);
+                } catch(e) {}
+            });
+        }
+
+        function handleNetworkCommand(data, senderConn) {
+            if (isHost) {
+                connections.forEach(conn => {
+                    if (conn !== senderConn) {
+                        try {
+                            conn.send(data);
+                        } catch(e) {}
+                    }
+                });
+            }
+            
+            const { cmd, args } = data;
+            if (cmd === 'fullSync') {
+                const state = args[0];
+                tiles.length = 0; tiles.push(...state.tiles);
+                Object.keys(threads).forEach(k => delete threads[k]);
+                Object.assign(threads, state.threads);
+                nextId = state.nextId;
+                Object.assign(gameState, state.gameState);
+                
+                for (let k in activeRevisions) delete activeRevisions[k];
+                if (state.activeRevisions) {
+                    for (let id in state.activeRevisions) {
+                        activeRevisions[id] = { ...state.activeRevisions[id], approvals: new Set(state.activeRevisions[id].approvals) };
+                    }
+                }
+
+                document.getElementById('score-plus').innerText = gameState.plusTokens;
+                document.getElementById('score-minus').innerText = gameState.minusTokens;
+                
+                const canvas = document.getElementById('canvas');
+                canvas.querySelectorAll('.tile').forEach(el => el.remove());
+                tiles.forEach(renderTile);
+                drawLinks();
+                tiles.forEach(t => updateTileUI(t.id));
+                
+                document.getElementById('add-modal').style.display = 'none';
+                
+                const topicTile = tiles.find(t => t.stance === 'topic');
+                if (topicTile && !playerTeam) {
+                    showTeamModal(topicTile.text);
+                }
+
+                setTimeout(() => {
+                    if (!playerTeam) return; 
+                    checkPendingRevisionsForMe();
+                }, 1000);
+            }
+            else if (cmd === 'addTileData') {
+                addTileData(args[0], args[1], args[2], args[3], args[4], args[5], true);
+                if (args[2] === 'topic' && !playerTeam) {
+                    showTeamModal(args[5]);
+                }
+            }
+            else if (cmd === 'proposeRevision') {
+                const[revId, type, tileId, ruleId, text, required, team, proposerId] = args;
+                activeRevisions[revId] = {
+                    type, tileId, ruleId, text, required, approvals: new Set([proposerId]),
+                    proposerId, team
+                };
+                
+                if (required <= 1) {
+                    checkRevisionCompletion(revId);
+                } else {
+                    if (type === 'reason' && playerTeam === team && proposerId !== myPeerId) {
+                        showAcceptReasonModal(revId, tileId, ruleId, text);
+                    } else if (type === 'topic' && proposerId !== myPeerId) {
+                        showAcceptTopicModal(revId, text);
+                    }
+                }
+            }
+            else if (cmd === 'approveRevision') {
+                const[revId, peerId] = args;
+                if (activeRevisions[revId]) {
+                    activeRevisions[revId].approvals.add(peerId);
+                    checkRevisionCompletion(revId);
+                }
+            }
+            else if (cmd === 'rejectRevision') {
+                const [revId] = args;
+                const rev = activeRevisions[revId];
+                if (rev && rev.proposerId === myPeerId) {
+                    if (rev.type === 'reason') {
+                        const tileEl = document.getElementById('tile-' + rev.tileId);
+                        if (tileEl) showTemporaryPopup(tileEl, "Revision rejected by teammate");
+                    } else {
+                        const topicTile = tiles.find(t => t.stance === 'topic');
+                        if (topicTile) showTemporaryPopup(document.getElementById('tile-' + topicTile.id), "Revision rejected");
+                    }
+                }
+                delete activeRevisions[revId];
+                closeAcceptModal(revId);
+            }
+            else if (cmd === 'ruleCardPlayed') {
+                handleRuleCardPlayed(args[0], args[1]);
+            }
+            else if (cmd === 'toggleToken') {
+                toggleToken(args[0], args[1], true);
+            }
+            else if (cmd === 'setThreadCollapse') {
+                setThreadCollapse(args[0], args[1], true);
+            }
+            else if (cmd === 'startTimer') {
+                startTimer(true);
+            }
+            else if (cmd === 'resetTimer') {
+                resetTimer(true);
+            }
+            else if (cmd === 'heartbeat') {
+                if (args[1] !== 'none') {
+                    peerTeams[args[0]] = args[1];
+                }
+                peerLastSeen[args[0]] = Date.now();
+            }
+        }
+
+        window.checkPendingRevisionsForMe = function() {
+            for (let revId in activeRevisions) {
+                const rev = activeRevisions[revId];
+                if (!rev.approvals.has(myPeerId)) {
+                    if (rev.type === 'reason' && rev.team === playerTeam) {
+                        showAcceptReasonModal(revId, rev.tileId, rev.ruleId, rev.text);
+                    } else if (rev.type === 'topic') {
+                        showAcceptTopicModal(revId, rev.text);
+                    }
+                }
+            }
+        };
+
+        window.showTeamModal = function(topicText) {
+            document.getElementById('team-modal-topic').innerText = topicText;
+            document.getElementById('team-modal').style.display = 'flex';
+        };
+
+        window.selectTeam = function(team) {
+            playerTeam = team;
+            document.body.setAttribute('data-team', team);
+            document.getElementById('team-modal').style.display = 'none';
+            checkPendingRevisionsForMe();
+        };
+
+        window.showGameIdModal = function() {
+            if (!window.gameId) return;
+            document.getElementById('game-id-display').innerText = window.gameId;
+            document.getElementById('btn-copy-id').innerText = 'Copy ID';
+            document.getElementById('game-id-modal').style.display = 'flex';
+        };
+
+        window.copyGameId = function() {
+            navigator.clipboard.writeText(window.gameId);
+            document.getElementById('btn-copy-id').innerText = 'Copied!';
+        };
+
+        window.onload = initGame;
+    </script>
+</body>
+</html>
