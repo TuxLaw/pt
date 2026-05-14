@@ -131,6 +131,14 @@
         .score-plus { color: var(--yes-color); }
         .score-minus { color: var(--no-color); }
 
+        #wake-lock-warning {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--no-color); color: white; padding: 10px 20px;
+            border-radius: 50px; font-weight: 800; font-size: 14px;
+            z-index: 3000; display: none; box-shadow: 0 4px 10px var(--shadow-color);
+            text-align: center; pointer-events: auto; cursor: pointer;
+        }
+
         #disconnect-btn {
             position: absolute; top: 20px; right: 20px;
             width: 45px; height: 45px; border-radius: 50%;
@@ -483,6 +491,9 @@
 <body>
 
     <div id="ui-layer">
+        <div id="wake-lock-warning" onclick="this.style.display='none'">
+            ⚠️ Wake Lock failed. Keep screen active to prevent disconnects! (Tap to dismiss)
+        </div>
         <button id="disconnect-btn" title="Disconnect" onclick="handleDisconnectClick()" ondblclick="handleDisconnectClick()">❌</button>
         <button id="timer-btn" onpointerdown="handleTimerInteraction(event)" title="60s Timer">⏱️</button>
         <div id="controls">
@@ -1625,6 +1636,23 @@
         let isHost = false;
         let peerTeams = {};
         let peerLastSeen = {};
+        
+        let wakeLock = null;
+
+        async function requestWakeLock() {
+            if (!('wakeLock' in navigator)) {
+                console.warn("Wake Lock API not supported by this browser.");
+                document.getElementById('wake-lock-warning').style.display = 'block';
+                return;
+            }
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+                document.getElementById('wake-lock-warning').style.display = 'none';
+            } catch (err) {
+                console.warn("Wake Lock failed (likely battery saver or unsupported):", err);
+                document.getElementById('wake-lock-warning').style.display = 'block';
+            }
+        }
 
         function updateMultiplayerButton() {
             const mpRing = document.getElementById('mp-ring');
@@ -1697,6 +1725,11 @@
         window.handleDisconnectClick = function(e) {
             if(e) { e.preventDefault(); e.stopPropagation(); }
             if (confirm("Are you sure you want to disconnect?")) {
+                if (wakeLock) {
+                    wakeLock.release().then(() => wakeLock = null).catch(()=>{});
+                }
+                document.getElementById('wake-lock-warning').style.display = 'none';
+                
                 if (peer) {
                     peer.destroy();
                     peer = null;
@@ -1714,6 +1747,9 @@
 
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === "visible") {
+                if (window.gameId) {
+                    requestWakeLock();
+                }
                 // Wait 1.5 seconds to allow mobile network interfaces to fully wake up before reconnecting
                 setTimeout(() => {
                     if (isHost && window.gameId) {
@@ -1761,6 +1797,8 @@
                 window.history.replaceState(null, null, "#" + encodeURIComponent(id));
                 document.getElementById('mp-join-id').value = id;
                 document.getElementById('start-modal').style.display = 'none';
+                
+                requestWakeLock();
 
                 gameState.pendingAdd = { parentId: null, direction: 'none', stance: 'topic' };
                 document.getElementById('add-modal').setAttribute('data-stance', 'topic');
@@ -1792,6 +1830,8 @@
                 const conn = peer.connect(id);
                 setupConnection(conn);
                 window.gameId = id;
+                
+                requestWakeLock();
             });
             peer.on('error', err => {
                 document.getElementById('mp-status').innerText = 'Error: ' + err.type;
