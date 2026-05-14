@@ -139,6 +139,23 @@
             text-align: center; pointer-events: auto; cursor: pointer;
         }
 
+        .global-popup {
+            position: fixed; top: 15%; left: 50%; transform: translateX(-50%);
+            background: var(--no-color); color: white;
+            border: 2px solid rgba(0,0,0,0.1); padding: 12px 24px;
+            border-radius: 50px; font-family: 'Nunito', sans-serif;
+            font-weight: 800; font-size: 16px; text-align: center;
+            z-index: 5000; box-shadow: 0 10px 20px var(--shadow-color);
+            pointer-events: none; animation: globalPopIn 3s forwards;
+            white-space: nowrap;
+        }
+        @keyframes globalPopIn {
+            0% { opacity: 0; transform: translate(-50%, -20px); }
+            10% { opacity: 1; transform: translate(-50%, 0); }
+            80% { opacity: 1; transform: translate(-50%, 0); }
+            100% { opacity: 0; transform: translate(-50%, -20px); }
+        }
+
         #disconnect-btn {
             position: absolute; top: 20px; right: 20px;
             width: 45px; height: 45px; border-radius: 50%;
@@ -1448,6 +1465,14 @@
             }, 2000);
         }
 
+        function showGlobalPopup(message) {
+            const popup = document.createElement('div');
+            popup.className = 'global-popup';
+            popup.innerText = message;
+            document.body.appendChild(popup);
+            setTimeout(() => { if (popup.parentNode) popup.parentNode.removeChild(popup); }, 3000);
+        }
+
         function renderTile(tile) {
             const isTopic = tile.stance === 'topic';
             const color = isTopic ? 'var(--topic-color)' : (tile.stance === 'plus' ? 'var(--yes-color)' : 'var(--no-color)');
@@ -1636,6 +1661,8 @@
         let isHost = false;
         let peerTeams = {};
         let peerLastSeen = {};
+        let hasConnectedToHost = false;
+        let hostConnectedAt = 0;
         
         let wakeLock = null;
 
@@ -1653,6 +1680,51 @@
                 document.getElementById('wake-lock-warning').style.display = 'block';
             }
         }
+
+        function checkHostMigration() {
+            if (isHost || !window.gameId || !hasConnectedToHost) return;
+
+            const now = Date.now();
+            const hostLastSeen = peerLastSeen[window.gameId] || hostConnectedAt;
+            if (hostLastSeen === 0) return;
+
+            const hostDeadTimeout = (now - hostLastSeen > 8000);
+            let hostConn = connections.find(c => c.peer === window.gameId);
+            const connectionClosed = hostConn && !hostConn.open;
+
+            if (hostDeadTimeout || connectionClosed) {
+                console.log("Host migration triggered!");
+                
+                // Cleanup dead host
+                delete peerLastSeen[window.gameId];
+                delete peerTeams[window.gameId];
+                if (hostConn) hostConn.close();
+                connections = connections.filter(c => c.peer !== window.gameId && c.open);
+
+                // Elect new host (alphabetical sort of active peers)
+                const activePeerIds = Object.keys(peerLastSeen).filter(id => (now - peerLastSeen[id]) <= 8000);
+                activePeerIds.push(myPeerId);
+                activePeerIds.sort();
+
+                const newHostId = activePeerIds[0];
+                window.gameId = newHostId;
+                window.history.replaceState(null, null, "#" + encodeURIComponent(newHostId));
+
+                if (newHostId === myPeerId) {
+                    isHost = true;
+                    hasConnectedToHost = false;
+                    showGlobalPopup("Host disconnected. You are the new Host! 👑");
+                    updateMultiplayerButton();
+                } else {
+                    showGlobalPopup("Host disconnected. Reconnecting to new Host...");
+                    hasConnectedToHost = false;
+                    hostConnectedAt = 0;
+                    const newConn = peer.connect(newHostId);
+                    setupConnection(newConn);
+                }
+            }
+        }
+        setInterval(checkHostMigration, 2000);
 
         function updateMultiplayerButton() {
             const mpRing = document.getElementById('mp-ring');
@@ -1738,6 +1810,8 @@
                 peerLastSeen = {};
                 peerTeams = {};
                 isHost = false;
+                hasConnectedToHost = false;
+                hostConnectedAt = 0;
                 window.gameId = null;
                 window.history.replaceState(null, null, window.location.pathname + window.location.search);
                 document.getElementById('mp-join-id').value = '';
@@ -1777,6 +1851,7 @@
                                 const conn = peer.connect(window.gameId);
                                 setupConnection(conn);
                             });
+                            peer.on('connection', conn => { setupConnection(conn); });
                             peer.on('error', err => {
                                 console.log('Reconnect error', err);
                             });
@@ -1833,6 +1908,9 @@
                 
                 requestWakeLock();
             });
+            peer.on('connection', conn => {
+                setupConnection(conn);
+            });
             peer.on('error', err => {
                 document.getElementById('mp-status').innerText = 'Error: ' + err.type;
             });
@@ -1841,9 +1919,14 @@
         function setupConnection(conn) {
             connections.push(conn);
             conn.on('open', () => {
+                if (!isHost && conn.peer === window.gameId) {
+                    hasConnectedToHost = true;
+                    hostConnectedAt = Date.now();
+                }
                 const mpStatus = document.getElementById('mp-status');
                 if(mpStatus) mpStatus.innerText = 'Connected!';
                 setTimeout(() => document.getElementById('start-modal').style.display = 'none', 1000);
+                
                 if (isHost) {
                     const serializableRevisions = {};
                     for (let id in activeRevisions) {
