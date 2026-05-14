@@ -171,7 +171,7 @@
         .modal-content input[type="text"]:focus {
             border-color: var(--modal-accent); box-shadow: 0 0 0 4px rgba(0,0,0,0.05);
         }
-        
+
         .char-counter {
             text-align: right; font-size: 13px; color: var(--text-secondary);
             margin-top: 0; margin-bottom: 24px; font-weight: 600; font-family: 'Nunito', sans-serif;
@@ -305,18 +305,18 @@
             transition: left 0.4s cubic-bezier(0.25, 1, 0.5, 1), top 0.4s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
-        .tile-svg { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; 
+        .tile-svg {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;
             filter: drop-shadow(0px 3px 6px var(--shadow-svg));
         }
-        
+
         .tile-content {
             position: relative; z-index: 2; width: 190px; height: 190px;
             display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 5px 0;
         }
 
         .tile-header { font-family: 'League Gothic', sans-serif; text-transform: uppercase; font-size: var(--font-size-header); letter-spacing: 1px; }
-        
+
         .tile-text {
             width: 95%; flex-grow: 1; margin: 2px 0; border: none; resize: none;
             background: transparent; text-align: center; font-family: 'Nunito', sans-serif;
@@ -325,7 +325,7 @@
             white-space: pre-wrap;
         }
         .tile-text:empty::before { content: attr(data-placeholder); color: var(--text-secondary); opacity: 0.8; }
-        
+
         .tile-footer { font-weight: bold; font-size: var(--font-size-footer); letter-spacing: 3px; }
 
         .plus .tile-header, .plus .tile-footer { color: var(--yes-color); }
@@ -358,7 +358,7 @@
 
         .plus .add-btn { border-color: var(--yes-color); color: var(--yes-color); }
         .minus .add-btn { border-color: var(--no-color); color: var(--no-color); }
-        
+
         .topic .add-tl, .topic .add-tr { border-color: var(--yes-color); color: var(--yes-color); }
         .topic .add-bl, .topic .add-br { border-color: var(--no-color); color: var(--no-color); }
 
@@ -375,7 +375,7 @@
             z-index: 10; opacity: 0; pointer-events: none; transition: opacity 0.2s;
         }
         .tile.show-options .token-bar { opacity: 1; pointer-events: auto; }
-        
+
         .token-btn {
             background: var(--btn-bg); border: 2px solid var(--btn-border); border-radius: 12px;
             padding: 8px 16px; cursor: pointer; box-shadow: 0 4px 8px var(--shadow-color);
@@ -396,7 +396,7 @@
         }
         .mini-rule-menu button {
             background: var(--btn-bg); color: var(--text-primary); border: 1px solid var(--btn-border);
-            padding: 8px 12px; border-radius: 4px; cursor: pointer; font-family: 'Nunito', sans-serif; 
+            padding: 8px 12px; border-radius: 4px; cursor: pointer; font-family: 'Nunito', sans-serif;
             font-size: var(--font-size-btn); font-weight: bold; white-space: nowrap;
             display: flex; align-items: center; gap: 6px;
         }
@@ -405,14 +405,14 @@
 
         /* The placed token mark */
         .display-token {
-            position: absolute; font-size: var(--icon-size-display-token); z-index: 25; 
+            position: absolute; font-size: var(--icon-size-display-token); z-index: 25;
             filter: drop-shadow(0px 4px 5px var(--shadow-token)); pointer-events: none;
             animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
 
-        @keyframes popIn { 
-            0% { transform: translate(-50%, -50%) scale(0); } 
-            100% { transform: translate(-50%, -50%) scale(1); } 
+        @keyframes popIn {
+            0% { transform: translate(-50%, -50%) scale(0); }
+            100% { transform: translate(-50%, -50%) scale(1); }
         }
 
         .temp-popup {
@@ -462,7 +462,7 @@
         }
 
         /* --- TEAM RESTRICTIONS --- */
-        body[data-team="plus"] .topic .add-bl, 
+        body[data-team="plus"] .topic .add-bl,
         body[data-team="plus"] .topic .add-br { display: none !important; }
 
         body[data-team="plus"] .plus .add-btn,
@@ -470,7 +470,7 @@
 
         body[data-team="plus"] .plus .btn-rule { display: none !important; }
 
-        body[data-team="minus"] .topic .add-tl, 
+        body[data-team="minus"] .topic .add-tl,
         body[data-team="minus"] .topic .add-tr { display: none !important; }
 
         body[data-team="minus"] .minus .add-btn,
@@ -507,13 +507,12 @@
         <div class="modal-content">
             <h3>🌐 Point Taken</h3>
             <p id="mp-status"></p>
-            <div class="modal-actions" style="justify-content: flex-start; margin-bottom: 16px;">
-                <button class="btn-submit" onclick="hostGame()" style="width: 100%;">Host Game</button>
-            </div>
-            <div style="text-align: center; font-size: 20px; font-weight: 800; color: var(--text-secondary); margin-bottom: 16px;">OR</div>
-            <div style="display: flex; gap: 12px; margin-bottom: 8px;">
-                <input type="text" id="mp-join-id" placeholder="Paste Host ID here...">
-                <button class="btn-submit" onclick="joinGame()" style="white-space: nowrap;">Join Game</button>
+            <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 8px;">
+                <input type="text" id="mp-join-id" placeholder="Room ID (leave blank to auto-generate)">
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn-submit" onclick="hostGame()" style="flex: 1;">Host Game</button>
+                    <button class="btn-submit" onclick="joinGame()" style="flex: 1;">Join Game</button>
+                </div>
             </div>
         </div>
     </div>
@@ -524,7 +523,7 @@
             <h3 style="justify-content: center;">Choose Your Team</h3>
             <p style="margin-bottom: 12px; background: transparent; padding: 0;">Topic:</p>
             <p id="team-modal-topic" style="color: var(--topic-color); font-size: var(--font-size-header); font-weight: 800; word-break: break-word;"></p>
-            
+
             <p style="text-align: left;">
                 The Green team believes that the proposition is true and the Orange team that it is false or they don't know (agnostic's position).
             </p>
@@ -539,10 +538,10 @@
     <!-- Game ID Modal -->
     <div id="game-id-modal">
         <div class="modal-content" style="text-align: center;">
-            <h3 style="justify-content: center;">Game ID</h3>
-            <p id="game-id-display" style="font-size: 28px; font-weight: 800; margin: 24px 0; user-select: text; letter-spacing: 2px; text-align: center; color: var(--modal-accent);"></p>
+            <h3 style="justify-content: center;">Share Game Link</h3>
+            <p id="game-id-display" style="font-size: 20px; font-weight: 800; margin: 24px 0; user-select: text; letter-spacing: 1px; text-align: center; color: var(--modal-accent); word-break: break-all;"></p>
             <div class="modal-actions" style="justify-content: center; gap: 16px;">
-                <button class="btn-submit" onclick="copyGameId()" id="btn-copy-id">Copy ID</button>
+                <button class="btn-submit" onclick="copyGameId()" id="btn-copy-id">Copy Link</button>
                 <button class="btn-cancel" onclick="document.getElementById('game-id-modal').style.display='none'">Close</button>
             </div>
         </div>
@@ -648,10 +647,10 @@
         let panY = window.innerHeight / 2;
 
         const gameState = { plusTokens: 0, minusTokens: 0, activeRuleCard: null, pendingRule: null, pendingAdd: null };
-        const RULES = { 
-            'you': { icon: '💓', label: "'You' is Taboo" }, 
-            'clarify': { icon: '👓', label: "Let's Clarify?" }, 
-            'fact': { icon: '🔎', label: "Fact Check?" } 
+        const RULES = {
+            'you': { icon: '💓', label: "'You' is Taboo" },
+            'clarify': { icon: '👓', label: "Let's Clarify?" },
+            'fact': { icon: '🔎', label: "Fact Check?" }
         };
 
         const tiles =[];
@@ -679,7 +678,7 @@
 
         // --- Viewport Panning & Zooming ---
         let isPanning = false, startX, startY;
-        
+
         function updateTransform() {
             if (!transformRaf) {
                 transformRaf = requestAnimationFrame(() => {
@@ -691,7 +690,7 @@
 
         viewport.addEventListener('mousedown', e => {
             if (e.button === 1) e.preventDefault(); // Prevent middle mouse auto-scroll
-            if (document.getElementById('rule-modal').style.display === 'flex' || 
+            if (document.getElementById('rule-modal').style.display === 'flex' ||
                 document.getElementById('add-modal').style.display === 'flex' ||
                 document.getElementById('revise-topic-modal').style.display === 'flex' ||
                 document.getElementById('accept-topic-modal').style.display === 'flex' ||
@@ -699,7 +698,7 @@
                 document.getElementById('win-modal').style.display === 'flex' ||
                 document.getElementById('start-modal').style.display === 'flex' ||
                 document.getElementById('team-modal').style.display === 'flex' ||
-                document.getElementById('game-id-modal').style.display === 'flex') return; 
+                document.getElementById('game-id-modal').style.display === 'flex') return;
 
             // Prevent panning if clicking a button inside tile
             if (e.target.closest('button')) return;
@@ -715,21 +714,21 @@
                 });
             }
 
-            isPanning = true; 
+            isPanning = true;
             viewport.classList.add('is-interacting');
             startX = e.clientX - panX; startY = e.clientY - panY;
         });
-        
+
         window.addEventListener('mousemove', e => {
             if (!isPanning) return;
             panX = e.clientX - startX; panY = e.clientY - startY; updateTransform();
         });
-        
+
         window.addEventListener('mouseup', () => {
             isPanning = false;
             viewport.classList.remove('is-interacting');
         });
-        
+
         window.addEventListener('mouseleave', () => {
             isPanning = false;
             viewport.classList.remove('is-interacting');
@@ -737,7 +736,7 @@
 
         let wheelTimeout;
         viewport.addEventListener('wheel', e => {
-            if (document.getElementById('rule-modal').style.display === 'flex' || 
+            if (document.getElementById('rule-modal').style.display === 'flex' ||
                 document.getElementById('add-modal').style.display === 'flex' ||
                 document.getElementById('revise-topic-modal').style.display === 'flex' ||
                 document.getElementById('accept-topic-modal').style.display === 'flex' ||
@@ -747,7 +746,7 @@
                 document.getElementById('team-modal').style.display === 'flex' ||
                 document.getElementById('game-id-modal').style.display === 'flex') return;
             e.preventDefault();
-            
+
             viewport.classList.add('is-interacting');
             clearTimeout(wheelTimeout);
             wheelTimeout = setTimeout(() => viewport.classList.remove('is-interacting'), 150);
@@ -766,7 +765,7 @@
         let touchStartScale = 1;
 
         viewport.addEventListener('touchstart', e => {
-            if (document.getElementById('rule-modal').style.display === 'flex' || 
+            if (document.getElementById('rule-modal').style.display === 'flex' ||
                 document.getElementById('add-modal').style.display === 'flex' ||
                 document.getElementById('revise-topic-modal').style.display === 'flex' ||
                 document.getElementById('accept-topic-modal').style.display === 'flex' ||
@@ -806,7 +805,7 @@
                 );
                 if (touchStartDist === 0) touchStartDist = 1;
                 const newScale = Math.min(Math.max(0.2, touchStartScale * (dist / touchStartDist)), 2.5);
-                
+
                 const rect = viewport.getBoundingClientRect();
                 const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
                 const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
@@ -816,7 +815,7 @@
 
                 scale = newScale;
                 updateTransform();
-                
+
                 touchStartScale = scale;
                 touchStartDist = dist;
             }
@@ -873,7 +872,7 @@
             updateCharCounter(document.getElementById('modal-new-topic-text'), 'modal-new-topic-char-counter');
             document.getElementById('revise-topic-modal').style.display = 'flex';
             setTimeout(() => document.getElementById('modal-new-topic-text').focus(), 100);
-            
+
             // hide options
             document.querySelectorAll('.tile').forEach(el => el.classList.remove('show-options'));
         };
@@ -886,19 +885,19 @@
             const newText = document.getElementById('modal-new-topic-text').value;
             if (!newText.trim()) return;
             closeReviseTopicModal();
-            
+
             let requiredApprovals = 1; // self
             Object.values(peerTeams).forEach(t => requiredApprovals++);
-            
+
             const revId = 'topic_' + Date.now() + '_' + Math.floor(Math.random()*1000);
             activeRevisions[revId] = {
                 type: 'topic', text: newText,
                 required: requiredApprovals, approvals: new Set([myPeerId]),
                 proposerId: myPeerId, team: 'all'
             };
-            
+
             broadcast({cmd: 'proposeRevision', args:[revId, 'topic', null, null, newText, requiredApprovals, 'all', myPeerId]});
-            
+
             if (requiredApprovals <= 1) {
                 checkRevisionCompletion(revId);
             } else {
@@ -962,7 +961,7 @@
             const tile = tiles.find(t => t.id === tileId);
             document.getElementById('modal-accept-original-reason-text').innerText = tile.text || '(empty)';
             document.getElementById('modal-proposed-reason-text').innerText = newText;
-            
+
             const modal = document.getElementById('accept-reason-modal');
             modal.style.setProperty('--modal-accent', tile.stance === 'plus' ? 'var(--yes-color)' : 'var(--no-color)');
             modal.style.display = 'flex';
@@ -1015,11 +1014,11 @@
         function checkCollectiveWin() {
             const rootIds = Object.keys(threads);
             if (rootIds.length === 0) return;
-            
+
             const allResolved = rootIds.every(rootId => {
                 return tiles.some(t => t.threadRootId == rootId && t.isResolved);
             });
-            
+
             if (allResolved) {
                 setTimeout(() => showWinModal("All threads have been resolved! Collective Win!"), 300);
             }
@@ -1032,9 +1031,9 @@
         }
 
         window.applyRuleToTile = function(tileId, event) {
-            event.stopPropagation(); 
+            event.stopPropagation();
             if (!gameState.activeRuleCard) return;
-            
+
             const ruleId = gameState.activeRuleCard;
             cancelRule(); // clears activeRuleCard
 
@@ -1050,27 +1049,27 @@
         window.submitRuleRevision = function() {
             const newText = document.getElementById('modal-new-text').value;
             const pending = gameState.pendingRule;
-            const tileId = pending.tileId; 
+            const tileId = pending.tileId;
             const ruleId = pending.ruleId;
-            
+
             closeRuleModal();
-            
+
             const parentTile = tiles.find(t => t.id === tileId);
             const team = parentTile.stance;
-            
+
             let requiredApprovals = 0;
             if (playerTeam === team) requiredApprovals++;
             Object.values(peerTeams).forEach(t => { if (t === team) requiredApprovals++; });
-            
+
             const revId = 'rev_' + Date.now() + '_' + Math.floor(Math.random()*1000);
             activeRevisions[revId] = {
                 type: 'reason', tileId, ruleId, text: newText,
                 required: requiredApprovals, approvals: new Set([myPeerId]),
                 proposerId: myPeerId, team: team
             };
-            
+
             broadcast({cmd: 'proposeRevision', args:[revId, 'reason', tileId, ruleId, newText, requiredApprovals, team, myPeerId]});
-            
+
             if (requiredApprovals <= 1) {
                 checkRevisionCompletion(revId);
             } else {
@@ -1082,19 +1081,19 @@
             const parentTile = tiles.find(t => t.id === tileId);
             if (!parentTile) return;
             const rule = RULES[ruleId];
-            
-            if (parentTile.stance === 'plus') { 
-                gameState.minusTokens++; document.getElementById('score-minus').innerText = gameState.minusTokens; 
-            } else if (parentTile.stance === 'minus') { 
-                gameState.plusTokens++; document.getElementById('score-plus').innerText = gameState.plusTokens; 
+
+            if (parentTile.stance === 'plus') {
+                gameState.minusTokens++; document.getElementById('score-minus').innerText = gameState.minusTokens;
+            } else if (parentTile.stance === 'minus') {
+                gameState.plusTokens++; document.getElementById('score-plus').innerText = gameState.plusTokens;
             }
-            
+
             insertRevisionTile(parentTile, newText, rule.icon);
         };
 
         window.handleRuleCardPlayed = function(tileId, ruleId) {
             const tile = tiles.find(t => t.id === tileId);
-            
+
             if (tile.stance === playerTeam) {
                 gameState.pendingRule = { tileId: tileId, ruleId: ruleId };
                 const rule = RULES[ruleId];
@@ -1135,10 +1134,10 @@
 
         window.applySpecificRule = function(tileId, ruleId, event) {
             if(event) event.stopPropagation();
-            
+
             broadcast({cmd: 'ruleCardPlayed', args:[tileId, ruleId]});
             handleRuleCardPlayed(tileId, ruleId);
-            
+
             document.querySelectorAll('.tile').forEach(el => {
                 el.classList.remove('show-options');
                 const tb = el.querySelector('.token-bar');
@@ -1164,20 +1163,20 @@
             } else {
                 dx = -RULE_CARD_OFFSET; dy = 0;
             }
-            
+
             // Shift all existing downstream thread pieces smoothly backwards
             const descendants = getDescendants(parentTile.id);
             descendants.forEach(d => {
                 d.gridX += dx; d.gridY += dy;
                 d.x += dx; d.y += dy; d.depth += 1;
                 const el = document.getElementById('tile-' + d.id);
-                if (el) { 
-                    el.style.left = d.x + 'px'; 
-                    el.style.top = d.y + 'px'; 
+                if (el) {
+                    el.style.left = d.x + 'px';
+                    el.style.top = d.y + 'px';
                     el.style.zIndex = d.depth + 10;
                 }
             });
-            
+
             // Re-wire parents
             const immediateChild = tiles.find(t => t.parentId === parentTile.id);
             const newTileId = nextId++;
@@ -1190,13 +1189,13 @@
             }
 
             // Unresolve parent if it was resolved (Re-opening the segment)
-            parentTile.token = null; 
+            parentTile.token = null;
             parentTile.isResolved = false;
             updateTileUI(parentTile.id);
 
             // Create and inject the revised tile (Same stance/color)
             const newTile = {
-                id: newTileId, parentId: parentTile.id, 
+                id: newTileId, parentId: parentTile.id,
                 stance: parentTile.stance, growDirection: parentTile.growDirection,
                 gridX: parentTile.gridX + dx, gridY: parentTile.gridY + dy,
                 x: parentTile.gridX + dx, y: parentTile.gridY + dy,
@@ -1206,20 +1205,24 @@
             };
             tiles.push(newTile);
             renderTile(newTile);
-            
+
             // If there's an immediate child attached to the new one, hide its + button too
             if (immediateChild) {
                 document.getElementById('tile-' + newTile.id).classList.add(`has-child-${newTile.growDirection}`);
             }
 
             // Ensure the thread expands so we can see the inserted change
-            setThreadCollapse(newTile.id, false); 
+            setThreadCollapse(newTile.id, false);
             drawLinks();
         }
 
 
         // --- Game Logic: Standard Tiles & Threads ---
         function initGame() {
+            const roomName = window.location.hash.substring(1);
+            if (roomName) {
+                document.getElementById('mp-join-id').value = decodeURIComponent(roomName);
+            }
             document.getElementById('start-modal').style.display = 'flex';
             updateTransform();
         }
@@ -1233,15 +1236,15 @@
         window.submitAddModal = function() {
             const text = document.getElementById('add-modal-text').value;
             if (!text.trim()) return;
-            
+
             const pending = gameState.pendingAdd;
-            
+
             if (pending.parentId === null) {
                 addTileData(0, 0, 'topic', 'none', null, text);
                 document.getElementById('add-modal').style.display = 'none';
                 gameState.pendingAdd = null;
                 updateTransform();
-                
+
                 showTeamModal(text);
             } else {
                 const parent = tiles.find(t => t.id === pending.parentId);
@@ -1290,22 +1293,22 @@
 
             const parent = tiles.find(t => t.id === parentId);
             let newStance = (parent.stance === 'topic') ? ((direction === 'tl' || direction === 'tr') ? 'plus' : 'minus') : (parent.stance === 'plus' ? 'minus' : 'plus');
-            
+
             gameState.pendingAdd = { parentId, direction, stance: newStance };
-            
+
             const addModal = document.getElementById('add-modal');
             if (newStance === 'minus') {
                 addModal.setAttribute('data-stance', 'minus');
             } else {
                 addModal.setAttribute('data-stance', 'plus');
             }
-            
+
             document.getElementById('add-modal-title').innerText = newStance === 'plus' ? 'Add Supporting Point' : 'Add Counter Point';
             document.getElementById('add-modal-text').value = '';
             updateCharCounter(document.getElementById('add-modal-text'), 'add-modal-char-counter');
             document.getElementById('add-modal-text').placeholder = newStance === 'plus' ? 'Yes, because...' : 'No, because...';
             document.getElementById('add-modal-cancel').style.display = 'inline-block';
-            
+
             addModal.style.display = 'flex';
             setTimeout(() => document.getElementById('add-modal-text').focus(), 100);
         };
@@ -1315,53 +1318,53 @@
             if (!isRemote) broadcast({cmd: 'setThreadCollapse', args:[triggerTileId, forceCollapse]});
             const tile = tiles.find(t => t.id === triggerTileId);
             if (!tile || !tile.threadRootId) return;
-            
+
             const rootId = tile.threadRootId;
             const threadState = threads[rootId];
-            if (threadState.isCollapsed === forceCollapse) return; 
-            
+            if (threadState.isCollapsed === forceCollapse) return;
+
             threadState.isCollapsed = forceCollapse;
             const tList = tiles.filter(t => t.threadRootId === rootId);
             const root = tiles.find(t => t.id === rootId);
 
             if (forceCollapse) {
                 const sorted =[...tList].sort((a,b) => b.depth - a.depth);
-                drawLinks(); 
-                
+                drawLinks();
+
                 sorted.forEach((t, i) => {
                     setTimeout(() => {
                         const dxMap = { 'tl': -THREAD_STACK_OFFSET, 'tr': THREAD_STACK_OFFSET, 'bl': -THREAD_STACK_OFFSET, 'br': THREAD_STACK_OFFSET };
                         const dyMap = { 'tl': -THREAD_STACK_OFFSET, 'tr': -THREAD_STACK_OFFSET, 'bl': THREAD_STACK_OFFSET, 'br': THREAD_STACK_OFFSET };
                         const dx = dxMap[root.growDirection];
                         const dy = dyMap[root.growDirection];
-                        
+
                         t.x = root.gridX + (t.depth - 1) * dx;
                         t.y = root.gridY + (t.depth - 1) * dy;
-                        
+
                         const el = document.getElementById('tile-' + t.id);
                         el.style.left = t.x + 'px'; el.style.top = t.y + 'px';
                         el.style.zIndex = t.depth + 10;
                         el.classList.add('collapsed-thread');
                     }, i * 150);
                 });
-                panTo(0, 0); 
-                
+                panTo(0, 0);
+
             } else {
                 const sorted =[...tList].sort((a,b) => a.depth - b.depth);
-                
+
                 sorted.forEach((t, i) => {
                     setTimeout(() => {
                         t.x = t.gridX; t.y = t.gridY;
-                        
+
                         const el = document.getElementById('tile-' + t.id);
                         el.style.left = t.x + 'px'; el.style.top = t.y + 'px';
                         el.style.zIndex = t.depth + 10;
                         el.classList.remove('collapsed-thread');
-                        
-                        drawLinks(); 
+
+                        drawLinks();
                     }, i * 150);
                 });
-                
+
                 const lastTile = sorted[sorted.length - 1];
                 panTo(lastTile.gridX, lastTile.gridY);
             }
@@ -1381,10 +1384,10 @@
             const tile = tiles.find(t => t.id === tileId);
             if (tile.token === tokenType) {
                 tile.token = null; tile.isResolved = false;
-                setThreadCollapse(tileId, false, true); 
+                setThreadCollapse(tileId, false, true);
             } else {
                 tile.token = tokenType; tile.isResolved = true;
-                setThreadCollapse(tileId, true, true); 
+                setThreadCollapse(tileId, true, true);
             }
             updateTileUI(tileId);
 
@@ -1414,7 +1417,7 @@
 
             if (tile.token) {
                 el.querySelector('.btn-' + tile.token).classList.add('active');
-                const tDisp = document.createElement('div'); 
+                const tDisp = document.createElement('div');
                 tDisp.className = `display-token token-${tile.growDirection}`;
                 tDisp.innerText = tile.token === 'thumbs' ? '👍' : '👀';
                 el.appendChild(tDisp);
@@ -1481,7 +1484,7 @@
             }
 
             div.innerHTML = `${ruleCardHTML}${svgHTML}<div class="tile-content"><div class="tile-header">${headerText}</div><div class="tile-text" data-placeholder="${placeholder}"></div><div class="tile-footer">${footerText}</div></div>${buttonsHTML}${extraHTML}`;
-            
+
             // Safely insert text content
             div.querySelector('.tile-text').innerText = tile.text;
 
@@ -1525,7 +1528,7 @@
             tiles.forEach(tile => {
                 if (tile.parentId !== null) {
                     if (tile.threadRootId && threads[tile.threadRootId].isCollapsed) {
-                        if (tile.depth > 1) return; 
+                        if (tile.depth > 1) return;
                     }
                     // Basic parent-child lines could be drawn here if needed
                 }
@@ -1548,10 +1551,10 @@
         window.handleTimerInteraction = function(e) {
             e.stopPropagation();
             e.preventDefault();
-            
+
             const currentTime = Date.now();
             const tapLength = currentTime - timerLastTap;
-            
+
             if (isTimerActive) {
                 if (tapLength < 400 && tapLength > 0) {
                     resetTimer();
@@ -1578,7 +1581,7 @@
             const btn = document.getElementById('timer-btn');
             btn.classList.add('active');
             btn.innerHTML = `<div class="timer-time">${timeLeft}</div><div class="timer-cancel-text">Tap 2x to cancel</div>`;
-            
+
             timerInterval = setInterval(() => {
                 timeLeft--;
                 if (timeLeft > 0) {
@@ -1631,7 +1634,7 @@
             const disconnectBtn = document.getElementById('disconnect-btn');
 
             let isConnected = false;
-            
+
             const now = Date.now();
             for (let id in peerLastSeen) {
                 if (now - peerLastSeen[id] > 8000) {
@@ -1703,6 +1706,8 @@
                 peerTeams = {};
                 isHost = false;
                 window.gameId = null;
+                window.history.replaceState(null, null, window.location.pathname + window.location.search);
+                document.getElementById('mp-join-id').value = '';
                 updateMultiplayerButton();
             }
         };
@@ -1746,14 +1751,17 @@
         });
 
         window.hostGame = function() {
-            document.getElementById('mp-status').innerText = 'Generating ID...';
-            peer = new Peer();
+            const requestedId = document.getElementById('mp-join-id').value.trim();
+            document.getElementById('mp-status').innerText = requestedId ? 'Creating room...' : 'Generating ID...';
+            peer = requestedId ? new Peer(requestedId) : new Peer();
             peer.on('open', id => {
                 window.gameId = id;
                 myPeerId = id;
                 isHost = true;
+                window.history.replaceState(null, null, "#" + encodeURIComponent(id));
+                document.getElementById('mp-join-id').value = id;
                 document.getElementById('start-modal').style.display = 'none';
-                
+
                 gameState.pendingAdd = { parentId: null, direction: 'none', stance: 'topic' };
                 document.getElementById('add-modal').setAttribute('data-stance', 'topic');
                 document.getElementById('add-modal-title').innerText = 'Set Topic';
@@ -1776,6 +1784,8 @@
             const id = document.getElementById('mp-join-id').value.trim();
             if(!id) return;
             document.getElementById('mp-status').innerText = 'Connecting...';
+            window.history.replaceState(null, null, "#" + encodeURIComponent(id));
+            
             peer = new Peer();
             peer.on('open', myId => {
                 myPeerId = myId;
@@ -1799,7 +1809,7 @@
                     for (let id in activeRevisions) {
                         serializableRevisions[id] = { ...activeRevisions[id], approvals: Array.from(activeRevisions[id].approvals) };
                     }
-                    
+
                     conn.send({
                         cmd: 'fullSync',
                         args:[{
@@ -1838,7 +1848,7 @@
                     }
                 });
             }
-            
+
             const { cmd, args } = data;
             if (cmd === 'fullSync') {
                 const state = args[0];
@@ -1847,7 +1857,7 @@
                 Object.assign(threads, state.threads);
                 nextId = state.nextId;
                 Object.assign(gameState, state.gameState);
-                
+
                 for (let k in activeRevisions) delete activeRevisions[k];
                 if (state.activeRevisions) {
                     for (let id in state.activeRevisions) {
@@ -1857,22 +1867,22 @@
 
                 document.getElementById('score-plus').innerText = gameState.plusTokens;
                 document.getElementById('score-minus').innerText = gameState.minusTokens;
-                
+
                 const canvas = document.getElementById('canvas');
                 canvas.querySelectorAll('.tile').forEach(el => el.remove());
                 tiles.forEach(renderTile);
                 drawLinks();
                 tiles.forEach(t => updateTileUI(t.id));
-                
+
                 document.getElementById('add-modal').style.display = 'none';
-                
+
                 const topicTile = tiles.find(t => t.stance === 'topic');
                 if (topicTile && !playerTeam) {
                     showTeamModal(topicTile.text);
                 }
 
                 setTimeout(() => {
-                    if (!playerTeam) return; 
+                    if (!playerTeam) return;
                     checkPendingRevisionsForMe();
                 }, 1000);
             }
@@ -1888,7 +1898,7 @@
                     type, tileId, ruleId, text, required, approvals: new Set([proposerId]),
                     proposerId, team
                 };
-                
+
                 if (required <= 1) {
                     checkRevisionCompletion(revId);
                 } else {
@@ -1971,15 +1981,21 @@
 
         window.showGameIdModal = function() {
             if (!window.gameId) return;
-            document.getElementById('game-id-display').innerText = window.gameId;
-            document.getElementById('btn-copy-id').innerText = 'Copy ID';
+            document.getElementById('game-id-display').innerText = window.location.href;
+            document.getElementById('btn-copy-id').innerText = 'Copy Link';
             document.getElementById('game-id-modal').style.display = 'flex';
         };
 
         window.copyGameId = function() {
-            navigator.clipboard.writeText(window.gameId);
+            navigator.clipboard.writeText(window.location.href);
             document.getElementById('btn-copy-id').innerText = 'Copied!';
         };
+
+        // URL Room Handling Events Update
+        document.getElementById('mp-join-id').addEventListener('input', () => {
+            const val = document.getElementById('mp-join-id').value.trim();
+            window.history.replaceState(null, null, val ? "#" + encodeURIComponent(val) : window.location.pathname + window.location.search);
+        });
 
         window.onload = initGame;
     </script>
