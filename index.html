@@ -131,14 +131,6 @@
         .score-plus { color: var(--yes-color); }
         .score-minus { color: var(--no-color); }
 
-        #wake-lock-warning {
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            background: var(--no-color); color: white; padding: 10px 20px;
-            border-radius: 50px; font-weight: 800; font-size: 14px;
-            z-index: 3000; display: none; box-shadow: 0 4px 10px var(--shadow-color);
-            text-align: center; pointer-events: auto; cursor: pointer;
-        }
-
         #disconnect-btn {
             position: absolute; top: 20px; right: 20px;
             width: 45px; height: 45px; border-radius: 50%;
@@ -491,9 +483,6 @@
 <body>
 
     <div id="ui-layer">
-        <div id="wake-lock-warning" onclick="this.style.display='none'">
-            ⚠️ Wake Lock failed. Keep screen active to prevent disconnects! (Tap to dismiss)
-        </div>
         <button id="disconnect-btn" title="Disconnect" onclick="handleDisconnectClick()" ondblclick="handleDisconnectClick()">❌</button>
         <button id="timer-btn" onpointerdown="handleTimerInteraction(event)" title="60s Timer">⏱️</button>
         <div id="controls">
@@ -669,7 +658,6 @@
         let nextId = 1;
         let transformRaf = null;
         let playerTeam = null;
-        let windowGameId = null;
 
         const activeRevisions = {}; // revId -> { type, tileId, ruleId, text, required, approvals: Set() }
         let myPeerId = null;
@@ -1632,72 +1620,10 @@
 
         // --- WebRTC Multiplayer Logic ---
         let peer = null;
-        let connections =[];
-        let isHost = false;
+        let connections = [];
+        let knownPeers = new Set();
         let peerTeams = {};
         let peerLastSeen = {};
-        let hasConnectedToHost = false;
-        let hostConnectedAt = 0;
-        
-        let wakeLock = null;
-
-        async function requestWakeLock() {
-            if (!('wakeLock' in navigator)) {
-                console.warn("Wake Lock API not supported by this browser.");
-                document.getElementById('wake-lock-warning').style.display = 'block';
-                return;
-            }
-            try {
-                wakeLock = await navigator.wakeLock.request('screen');
-                document.getElementById('wake-lock-warning').style.display = 'none';
-            } catch (err) {
-                console.warn("Wake Lock failed (likely battery saver or unsupported):", err);
-                document.getElementById('wake-lock-warning').style.display = 'block';
-            }
-        }
-
-        function checkHostMigration() {
-            if (isHost || !window.gameId || !hasConnectedToHost) return;
-
-            const now = Date.now();
-            const hostLastSeen = peerLastSeen[window.gameId] || hostConnectedAt;
-            if (hostLastSeen === 0) return;
-
-            const hostDeadTimeout = (now - hostLastSeen > 8000);
-            let hostConn = connections.find(c => c.peer === window.gameId);
-            const connectionClosed = hostConn && !hostConn.open;
-
-            if (hostDeadTimeout || connectionClosed) {
-                console.log("Host migration triggered!");
-                
-                // Cleanup dead host
-                delete peerLastSeen[window.gameId];
-                delete peerTeams[window.gameId];
-                if (hostConn) hostConn.close();
-                connections = connections.filter(c => c.peer !== window.gameId && c.open);
-
-                // Elect new host (alphabetical sort of active peers)
-                const activePeerIds = Object.keys(peerLastSeen).filter(id => (now - peerLastSeen[id]) <= 8000);
-                activePeerIds.push(myPeerId);
-                activePeerIds.sort();
-
-                const newHostId = activePeerIds[0];
-                window.gameId = newHostId;
-                window.history.replaceState(null, null, "#" + encodeURIComponent(newHostId));
-
-                if (newHostId === myPeerId) {
-                    isHost = true;
-                    hasConnectedToHost = false;
-                    updateMultiplayerButton();
-                } else {
-                    hasConnectedToHost = false;
-                    hostConnectedAt = 0;
-                    const newConn = peer.connect(newHostId);
-                    setupConnection(newConn);
-                }
-            }
-        }
-        setInterval(checkHostMigration, 2000);
 
         function updateMultiplayerButton() {
             const mpRing = document.getElementById('mp-ring');
@@ -1716,12 +1642,8 @@
                 }
             }
 
-            let hasActivePeers = Object.keys(peerLastSeen).length > 0;
-
             if (peer && !peer.disconnected && !peer.destroyed) {
-                if (isHost) {
-                    isConnected = true;
-                } else if (hasActivePeers || connections.some(c => c.open)) {
+                if (connections.some(c => c.open) || tiles.length > 0) {
                     isConnected = true;
                 }
             }
@@ -1736,8 +1658,8 @@
                 mpRing.className = 'ring-red';
                 mpCounts.style.display = 'none';
             } else {
-                if (isHost && hasActivePeers) {
-                    mpRing.className = 'ring-golden';
+                if (connections.some(c => c.open)) {
+                    mpRing.className = 'ring-blue';
                 } else {
                     mpRing.className = 'ring-blue';
                 }
@@ -1759,8 +1681,8 @@
         setInterval(() => {
             if (peer && !peer.disconnected && !peer.destroyed) {
                 connections = connections.filter(c => c.open);
-                if (connections.length > 0) {
-                    broadcast({cmd: 'heartbeat', args:[peer.id, playerTeam || 'none']});
+                if (connections.some(c => c.open)) {
+                    broadcast({cmd: 'heartbeat', args:[myPeerId, playerTeam || 'none']});
                 }
             }
         }, 2000);
@@ -1770,22 +1692,14 @@
         window.handleDisconnectClick = function(e) {
             if(e) { e.preventDefault(); e.stopPropagation(); }
             if (confirm("Are you sure you want to disconnect?")) {
-                if (wakeLock) {
-                    wakeLock.release().then(() => wakeLock = null).catch(()=>{});
-                }
-                document.getElementById('wake-lock-warning').style.display = 'none';
-                
                 if (peer) {
                     peer.destroy();
                     peer = null;
                 }
-                connections =[];
+                connections = [];
+                knownPeers.clear();
                 peerLastSeen = {};
                 peerTeams = {};
-                isHost = false;
-                hasConnectedToHost = false;
-                hostConnectedAt = 0;
-                window.gameId = null;
                 window.history.replaceState(null, null, window.location.pathname + window.location.search);
                 document.getElementById('mp-join-id').value = '';
                 updateMultiplayerButton();
@@ -1794,71 +1708,72 @@
 
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === "visible") {
-                if (window.gameId) {
-                    requestWakeLock();
-                }
                 // Wait 1.5 seconds to allow mobile network interfaces to fully wake up before reconnecting
                 setTimeout(() => {
-                    if (isHost && window.gameId) {
-                        if (peer && !peer.destroyed && peer.disconnected) {
-                            peer.reconnect();
-                        } else if (!peer || peer.destroyed) {
-                            peer = new Peer(window.gameId); // Try to reclaim the host ID
-                            peer.on('open', id => { myPeerId = id; });
-                            peer.on('connection', conn => { setupConnection(conn); });
-                        }
-                    } else if (!isHost && window.gameId) {
-                        let hostConn = connections.find(c => c.peer === window.gameId && c.open);
-                        let isHostDead = peerLastSeen[window.gameId] && (Date.now() - peerLastSeen[window.gameId] > 8000);
-
-                        if (!hostConn || isHostDead || !peer || peer.destroyed || peer.disconnected) {
+                    if (peer && !peer.destroyed && peer.disconnected) {
+                        peer.reconnect();
+                    } else if (!peer || peer.destroyed) {
+                        const hashId = window.location.hash.substring(1);
+                        if (hashId) {
                             document.getElementById('mp-status').innerText = 'Reconnecting...';
-                            if (peer) {
-                                peer.destroy();
-                                peer = null;
+                            if (peer) { peer.destroy(); peer = null; }
+
+                            if (myPeerId === hashId) {
+                                document.getElementById('mp-join-id').value = hashId;
+                                hostGame();
+                            } else {
+                                joinGame(hashId);
                             }
-                            // Create a fresh peer to reconnect to the host
-                            peer = new Peer();
-                            peer.on('open', myId => {
-                                myPeerId = myId;
-                                const conn = peer.connect(window.gameId);
-                                setupConnection(conn);
-                            });
-                            peer.on('connection', conn => { setupConnection(conn); });
-                            peer.on('error', err => {
-                                console.log('Reconnect error', err);
-                            });
                         }
                     }
                 }, 1500); // 1.5s delay
             }
         });
 
+        function sendFullSync(conn) {
+            const serializableRevisions = {};
+            for (let id in activeRevisions) {
+                serializableRevisions[id] = { ...activeRevisions[id], approvals: Array.from(activeRevisions[id].approvals) };
+            }
+            conn.send({
+                cmd: 'fullSync',
+                args:[{
+                    tiles: tiles,
+                    threads: threads,
+                    nextId: nextId,
+                    gameState: gameState,
+                    activeRevisions: serializableRevisions
+                }]
+            });
+        }
+
         window.hostGame = function() {
             const requestedId = document.getElementById('mp-join-id').value.trim();
             document.getElementById('mp-status').innerText = requestedId ? 'Creating room...' : 'Generating ID...';
             peer = requestedId ? new Peer(requestedId) : new Peer();
+
             peer.on('open', id => {
-                window.gameId = id;
                 myPeerId = id;
-                isHost = true;
                 window.history.replaceState(null, null, "#" + encodeURIComponent(id));
                 document.getElementById('mp-join-id').value = id;
                 document.getElementById('start-modal').style.display = 'none';
-                
-                requestWakeLock();
 
-                gameState.pendingAdd = { parentId: null, direction: 'none', stance: 'topic' };
-                document.getElementById('add-modal').setAttribute('data-stance', 'topic');
-                document.getElementById('add-modal-title').innerText = 'Set Topic';
-                document.getElementById('add-modal-text').value = '';
-                updateCharCounter(document.getElementById('add-modal-text'), 'add-modal-char-counter');
-                document.getElementById('add-modal-text').placeholder = 'Write your topic here...';
-                document.getElementById('add-modal-cancel').style.display = 'none';
-                document.getElementById('add-modal').style.display = 'flex';
-                setTimeout(() => document.getElementById('add-modal-text').focus(), 100);
+                if (tiles.length === 0) {
+                    gameState.pendingAdd = { parentId: null, direction: 'none', stance: 'topic' };
+                    document.getElementById('add-modal').setAttribute('data-stance', 'topic');
+                    document.getElementById('add-modal-title').innerText = 'Set Topic';
+                    document.getElementById('add-modal-text').value = '';
+                    updateCharCounter(document.getElementById('add-modal-text'), 'add-modal-char-counter');
+                    document.getElementById('add-modal-text').placeholder = 'Write your topic here...';
+                    document.getElementById('add-modal-cancel').style.display = 'none';
+                    document.getElementById('add-modal').style.display = 'flex';
+                    setTimeout(() => document.getElementById('add-modal-text').focus(), 100);
+                }
             });
             peer.on('connection', conn => {
+                if (!conn.metadata || !conn.metadata.isMesh) {
+                    conn.on('open', () => sendFullSync(conn));
+                }
                 setupConnection(conn);
             });
             peer.on('error', err => {
@@ -1866,22 +1781,22 @@
             });
         };
 
-        window.joinGame = function() {
-            const id = document.getElementById('mp-join-id').value.trim();
+        window.joinGame = function(forcedId) {
+            const id = typeof forcedId === 'string' ? forcedId : document.getElementById('mp-join-id').value.trim();
             if(!id) return;
             document.getElementById('mp-status').innerText = 'Connecting...';
             window.history.replaceState(null, null, "#" + encodeURIComponent(id));
-            
+
             peer = new Peer();
             peer.on('open', myId => {
                 myPeerId = myId;
                 const conn = peer.connect(id);
                 setupConnection(conn);
-                window.gameId = id;
-                
-                requestWakeLock();
             });
             peer.on('connection', conn => {
+                if (!conn.metadata || !conn.metadata.isMesh) {
+                    conn.on('open', () => sendFullSync(conn));
+                }
                 setupConnection(conn);
             });
             peer.on('error', err => {
@@ -1890,63 +1805,63 @@
         };
 
         function setupConnection(conn) {
+            knownPeers.add(conn.peer);
             connections.push(conn);
+
             conn.on('open', () => {
-                if (!isHost && conn.peer === window.gameId) {
-                    hasConnectedToHost = true;
-                    hostConnectedAt = Date.now();
-                }
                 const mpStatus = document.getElementById('mp-status');
                 if(mpStatus) mpStatus.innerText = 'Connected!';
                 setTimeout(() => document.getElementById('start-modal').style.display = 'none', 1000);
-                
-                if (isHost) {
-                    const serializableRevisions = {};
-                    for (let id in activeRevisions) {
-                        serializableRevisions[id] = { ...activeRevisions[id], approvals: Array.from(activeRevisions[id].approvals) };
-                    }
 
-                    conn.send({
-                        cmd: 'fullSync',
-                        args:[{
-                            tiles: tiles,
-                            threads: threads,
-                            nextId: nextId,
-                            gameState: gameState,
-                            activeRevisions: serializableRevisions
-                        }]
-                    });
-                }
+                broadcastMeshPeers();
             });
             conn.on('data', data => {
                 handleNetworkCommand(data, conn);
             });
             conn.on('close', () => {
                 connections = connections.filter(c => c.open);
+                knownPeers.delete(conn.peer);
+                broadcastMeshPeers();
+            });
+            conn.on('error', () => {
+                connections = connections.filter(c => c.open);
+                knownPeers.delete(conn.peer);
+                broadcastMeshPeers();
             });
         }
 
+        function broadcastMeshPeers() {
+            const peerList = Array.from(knownPeers);
+            peerList.push(myPeerId);
+            broadcast({ cmd: 'mesh-peers', args: [peerList] });
+        }
+
         function broadcast(data) {
+            const sentTo = new Set();
             connections.forEach(conn => {
-                try {
-                    conn.send(data);
-                } catch(e) {}
+                if (conn.open && !sentTo.has(conn.peer)) {
+                    sentTo.add(conn.peer);
+                    try {
+                        conn.send(data);
+                    } catch(e) {}
+                }
             });
         }
 
         function handleNetworkCommand(data, senderConn) {
-            if (isHost) {
-                connections.forEach(conn => {
-                    if (conn !== senderConn) {
-                        try {
-                            conn.send(data);
-                        } catch(e) {}
+            const { cmd, args } = data;
+
+            if (cmd === 'mesh-peers') {
+                const receivedPeers = args[0];
+                receivedPeers.forEach(peerId => {
+                    if (peerId !== myPeerId && !knownPeers.has(peerId)) {
+                        knownPeers.add(peerId);
+                        const newConn = peer.connect(peerId, { metadata: { isMesh: true } });
+                        setupConnection(newConn);
                     }
                 });
             }
-
-            const { cmd, args } = data;
-            if (cmd === 'fullSync') {
+            else if (cmd === 'fullSync') {
                 const state = args[0];
                 tiles.length = 0; tiles.push(...state.tiles);
                 Object.keys(threads).forEach(k => delete threads[k]);
@@ -2076,14 +1991,16 @@
         };
 
         window.showGameIdModal = function() {
-            if (!window.gameId) return;
-            document.getElementById('game-id-display').innerText = window.location.href;
+            if (!myPeerId) return;
+            const link = window.location.origin + window.location.pathname + "#" + encodeURIComponent(myPeerId);
+            document.getElementById('game-id-display').innerText = link;
             document.getElementById('btn-copy-id').innerText = 'Copy Link';
             document.getElementById('game-id-modal').style.display = 'flex';
         };
 
         window.copyGameId = function() {
-            navigator.clipboard.writeText(window.location.href);
+            const link = window.location.origin + window.location.pathname + "#" + encodeURIComponent(myPeerId);
+            navigator.clipboard.writeText(link);
             document.getElementById('btn-copy-id').innerText = 'Copied!';
         };
 
